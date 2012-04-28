@@ -1,0 +1,4 @@
+TeamGo
+======
+
+Play go cooperatively
