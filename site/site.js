@@ -9,10 +9,26 @@ var server = app.listen(8000);
 
 var everyone = nowjs.initialize(server);
 var players = nowjs.getGroup('players');
+players._moves = [];
 
 everyone.on('join', function () {
     players.addUser(this.user.clientId);
 });
+
+players.now.join = function(){
+    var self = this;
+
+    this.now.clearBoard();
+
+    //Send the initial board state
+    players._moves.forEach(function(move){
+        self.now.playMove(move.color, move.x, move.y);
+    });
+
+    if(players._genmove){
+        gts_gtp.gtp.commands.genmove.apply(null, players._genmove);
+    }
+};
 
 var vertexMapping = {
     a: 0,
@@ -78,10 +94,16 @@ var fromGtpColor = function(color){
 
 gts_gtp.gtp.commands.genmove = function(args, callback){
     var color = fromGtpColor(args);
+    players._genmove = arguments;
 
-    players.now.genMove(color, function(err, x, y){
-        callback(err, toVertex(x, y));
-    });
+    if(players.now.genMove){
+        players.now.genMove(color, function(err, x, y){
+            players._genmove = null;
+            players._moves.push({color: color, x: x, y: y});
+
+            callback(err, toVertex(x, y));
+        });
+    }
 };
 
 var playRegex = /([^\s]+)\s([^\s]+)/;
@@ -91,7 +113,10 @@ gts_gtp.gtp.commands.play = function(args, callback){
     var color = fromGtpColor(match[1]);
     var coord = fromVertex(match[2]);
 
-    players.now.playMove(color, coord.x, coord.y);
+    if(players.now.playMove){
+        players.now.playMove(color, coord.x, coord.y);
+    }
+    players._moves.push({color: color, x: coord.x, y: coord.y });
 
     callback();
 };

@@ -50,43 +50,25 @@
 
 <div class="container">
 
-    <!-- Main hero unit for a primary marketing message or call to action -->
-    <div class="hero-unit">
-        <h1>Hello, world!</h1>
-        <p>This is a template for a simple marketing or informational website. It includes a large callout called the hero unit and three supporting pieces of content. Use it as a starting point to create something more unique.</p>
-        <p><a class="btn btn-primary btn-large">Learn more &raquo;</a></p>
-    </div>
-
-    <!-- Example row of columns -->
-    <div class="row">
-        <div class="span4">
-            <h2>Heading</h2>
-            <p>Donec id elit non mi porta gravida at eget metus. Fusce dapibus, tellus ac cursus commodo, tortor mauris condimentum nibh, ut fermentum massa justo sit amet risus. Etiam porta sem malesuada magna mollis euismod. Donec sed odio dui. </p>
-            <p><a class="btn" href="#">View details &raquo;</a></p>
+    <div class="game">
+        <div>
+            Black captures: <span data-bind="text: players.black.captures()"></span>
         </div>
-        <div class="span4">
-            <h2>Heading</h2>
-            <p>Donec id elit non mi porta gravida at eget metus. Fusce dapibus, tellus ac cursus commodo, tortor mauris condimentum nibh, ut fermentum massa justo sit amet risus. Etiam porta sem malesuada magna mollis euismod. Donec sed odio dui. </p>
-            <p><a class="btn" href="#">View details &raquo;</a></p>
+        <div>
+            White captures: <span data-bind="text: players.white.captures()"></span>
         </div>
-        <div class="span4">
-            <h2>Heading</h2>
-            <p>Donec sed odio dui. Cras justo odio, dapibus ac facilisis in, egestas eget quam. Vestibulum id ligula porta felis euismod semper. Fusce dapibus, tellus ac cursus commodo, tortor mauris condimentum nibh, ut fermentum massa justo sit amet risus.</p>
-            <p><a class="btn" href="#">View details &raquo;</a></p>
-        </div>
-    </div>
+        <div class="board" style="float:left" data-bind="foreach: rows">
+            <div class="row" data-bind="foreach: $data">
+                <div class="intersection" data-bind="click: click">
+                    <div class="stone $data.status()"
+                         data-bind="
+                            css: {
+                                white: status() === 'white',
+                                black: status() === 'black'
+                            }"
 
-    <div class="board" style="float:left" data-bind="foreach: rows">
-        <div class="row" data-bind="foreach: $data">
-            <div class="intersection" data-bind="click: click">
-                <div class="stone $data.status()"
-                     data-bind="
-                        css: {
-                            white: status() === 'white',
-                            black: status() === 'black'
-                        }"
-
-                ></div>
+                    ></div>
+                </div>
             </div>
         </div>
     </div>
@@ -115,23 +97,43 @@
 <script type="text/javascript" src="/js/raphael.js"></script>
 
 <script type="text/javascript">
-    now.ready(function(){
-        now.playMove = function(color, x, y){
-            console.log(color + ',' + x + ',' + y);
+    (function(){
+        var initialized = false;
 
-            tg.board.playMove(color, x, y);
-        };
+        now.ready(function(){
+            now.playMove = function(color, x, y){
+                console.log(color + ',' + x + ',' + y);
 
-        now.genMove = function(color, callback){
-            tg.board.events.once('intersectionClick', function(intersection){
-                tg.board.playMove(color, intersection.x, intersection.y);
+                tg.board.playMove(color, x, y);
+            };
 
-                callback(null, intersection.x, intersection.y);
-            });
-        };
+            now.genMove = function(color, callback){
+                console.log('genmove '  + color);
 
-        ko.applyBindings(tg.board, $('.board')[0]);
-    });
+                //If the player got disconnected during his turn, the old event handler will still be around
+                tg.board.events.removeAllListeners('intersectionClick');
+                tg.board.events.on('intersectionClick', function(intersection){
+                    if(tg.board.playMove(color, intersection.x, intersection.y)) {
+                        tg.board.events.removeAllListeners('intersectionClick');
+                        callback(null, intersection.x, intersection.y);
+                    }
+                });
+            };
+
+            now.clearBoard = function(){
+                tg.board.clear();
+            };
+
+            now.join();
+
+            if(!initialized){
+                var gameRoot = $('.game')[0];
+                ko.applyBindings(tg.board, gameRoot);
+
+                initialized = true;
+            }
+        });
+    })();
 </script>
 
 </body>
