@@ -1,81 +1,103 @@
 var tg = {};
 
-tg.board = {};
-tg.board.rows = [];
-tg.board.players = {
-    white: {
-        captures: ko.observable(0)
-    },
-    black: {
-        captures: ko.observable(0)
-    }
-};
-
-tg.board.events = new EventEmitter();
-
 (function(){
-    var board = tg.board;
-    var events = board.events;
+    var Board = function(){
+        var self = this;
 
-    for(var i = 0; i < 19; i++){
-        var row = [];
-        tg.board.rows.push(row);
+        this.rows = [];
+        this.players = {
+            white: {
+                captures: ko.observable(0)
+            },
+            black: {
+                captures: ko.observable(0)
+            }
+        };
 
-        for(var j = 0; j < 19; j++){
-            row.push({
-                x: j,
-                y: i,
-                status: ko.observable('empty'),
-                click: function(intersection){
-                    if(intersection.status() === 'empty'){
-                        events.emit('intersectionClick', intersection);
+        this.events = new EventEmitter();
+
+        for(var i = 0; i < 19; i++){
+            var row = [];
+            this.rows.push(row);
+
+            for(var j = 0; j < 19; j++){
+                row.push({
+                    x: j,
+                    y: i,
+                    status: ko.observable('empty'),
+                    click: function(intersection){
+                        if(intersection.status() === 'empty'){
+                            self.events.emit('intersectionClick', intersection);
+                        }
                     }
-                }
-            });
+                });
+            }
         }
-    }
+    };
 
-    board.clear = function(){
-        for(var i = 0; i < board.rows.length; i++){
-            var row = board.rows[i];
+    Board.prototype.clone = function(){
+        var clone = new Board();
+        var boardState = this.getStateString();
+        clone.resetToState(boardState);
+        clone.oneStateAgo = this.oneStateAgo;
+        clone.twoStatesAgo = this.twoStatesAgo;
+
+        return clone;
+    };
+
+    Board.prototype.clear = function(){
+        for(var i = 0; i < this.rows.length; i++){
+            var row = this.rows[i];
             for(var j = 0; j < row.length; j++){
                 row[j].status('empty');
             }
         }
 
-        board.players.white.captures(0);
-        board.players.black.captures(0);
-
-        board.lastMove = null;
+        this.players.white.captures(0);
+        this.players.black.captures(0);
     };
 
-    board.playMove = function(color, x, y){
-        board.rows[y][x].status(color);
 
-        var groups = board.findSurroundingGroups(color, x, y);
 
-        for(var i = 0; i < groups.length; i++){
-            if(board.isGroupCaptured(groups[i])){
-                board.capture(color, groups[i]);
+    Board.prototype.playMove = function(color, x, y){
+        var playMove = function(board){
+            board.rows[y][x].status(color);
+
+            var groups = board.findSurroundingGroups(color, x, y);
+
+            for(var i = 0; i < groups.length; i++){
+                if(board.isGroupCaptured(groups[i])){
+                    board.capture(color, groups[i]);
+                }
             }
-        }
+        };
 
-        if(!board.isLegalMove(color, x, y)){
-            board.resetToState(board.oneStateAgo);
+        //Attempt to play the move against a copy of the board to see if it's legal
+        var checkMove = function(board){
+            playMove(board);
+
+            return board.isLegalMove(color, x, y);
+        };
+
+        var clone = this.clone();
+
+        if(checkMove(clone)){
+            playMove(this);
+
+            this.twoStatesAgo = this.oneStateAgo;
+            this.oneStateAgo = this.getStateString();
+
+            return true;
+        } else {
             return false;
         }
-
-        board.twoStatesAgo = board.oneStateAgo;
-        board.oneStateAgo = board.getStateString();
-
-        return true;
     };
 
-    board.getStateString = function(){
+    Board.prototype.getStateString = function(){
         var state = '';
 
-        for(var i = 0; i < board.rows.length; i++){
-            var row = board.rows[i];
+        for(var i = 0; i < this.rows.length; i++){
+            var row = this.rows[i];
             for(var j = 0; j < row.length; j++){
                 if(row[j].status() === 'black'){
                     state += 'b';
@@ -90,53 +112,50 @@ tg.board.events = new EventEmitter();
         return state;
     };
 
-    board.resetToState = function(state){
+    Board.prototype.resetToState = function(state){
         for(var i = 0; i < state.length; i++){
             var x = i % 19;
             var y = Math.floor(i / 19);
 
             switch(state[i]){
                 case 'b':
-                    board.rows[y][x].status('black');
+                    this.rows[y][x].status('black');
                     break;
                 case 'w':
-                    board.rows[y][x].status('white');
+                    this.rows[y][x].status('white');
                     break;
                 case '+':
-                    board.rows[y][x].status('empty');
+                    this.rows[y][x].status('empty');
                     break;
             }
         }
     };
 
-    board.isLegalMove = function(color, x, y){
-        var legalMove = false;
+    Board.prototype.isLegalMove = function(color, x, y){
+        var group = this.findGroup(x, y);
 
-        var group = board.findGroup(x, y);
-
-        if(board.isGroupCaptured(group)){
+        if(this.isGroupCaptured(group)){
             return false;
         }
 
-        var state = board.getStateString();
+        var state = this.getStateString();
 
-
-        if(state === board.twoStatesAgo){
+        if(state === this.twoStatesAgo){
             return false;
         }
 
         return true;
     };
 
-    board.getColor = function(x, y){
+    Board.prototype.getColor = function(x, y){
         if(x < 0 || y < 0 || x > 18 || y > 18){
             return;
         }
 
-        return board.rows[y][x].status();
+        return this.rows[y][x].status();
     };
 
-    board.getOppositeColor = function(color){
+    var getOppositeColor = function(color){
         if(color === 'white'){
             return 'black';
         } else {
@@ -153,25 +172,27 @@ tg.board.events = new EventEmitter();
         ];
     };
 
-    board.findSurroundingGroups = function(color, x, y){
+    Board.prototype.findSurroundingGroups = function(color, x, y){
+        var self = this;
         var groups = [];
-        var oppositeColor = board.getOppositeColor(color);
+        var oppositeColor = getOppositeColor(color);
 
         getCardinalPoints(x, y).forEach(function(point){
-            if(board.getColor(point.x, point.y) === oppositeColor){
-                groups.push(board.findGroup(point.x, point.y));
+            if(self.getColor(point.x, point.y) === oppositeColor){
+                groups.push(self.findGroup(point.x, point.y));
             }
         });
 
         return groups;
     };
 
-    board.findGroup = function(x, y){
+    Board.prototype.findGroup = function(x, y){
+        var self = this;
         var group = {
             points: []
         };
 
-        var color = board.rows[y][x].status();
+        var color = this.rows[y][x].status();
         if(color === 'empty'){
             return group;
         }
@@ -189,7 +210,7 @@ tg.board.events = new EventEmitter();
 
             checked[x + ',' + y] = true;
 
-            if(board.rows[y][x].status() === color){
+            if(self.rows[y][x].status() === color){
                 group.points.push({x: x, y: y});
 
                 getCardinalPoints(x, y).forEach(function(point){
@@ -203,7 +224,9 @@ tg.board.events = new EventEmitter();
         return group;
     };
 
-    board.isGroupCaptured = function(group){
+    Board.prototype.isGroupCaptured = function(group){
+        var self = this;
+
         for(var i = 0; i < group.points.length; i++){
             var x = group.points[i].x;
             var y = group.points[i].y;
@@ -211,7 +234,7 @@ tg.board.events = new EventEmitter();
             var emptyFound = false;
 
             getCardinalPoints(x, y).forEach(function(point){
-                var color = board.getColor(point.x, point.y);
+                var color = self.getColor(point.x, point.y);
 
                 if(color === 'empty'){
                     emptyFound = true;
@@ -226,12 +249,15 @@ tg.board.events = new EventEmitter();
         return true;
     };
 
-    board.capture = function(color, group){
+    Board.prototype.capture = function(color, group){
         for(var i = 0; i < group.points.length; i++){
             var point = group.points[i];
-            board.rows[point.y][point.x].status('empty');
+            this.rows[point.y][point.x].status('empty');
         }
 
-        board.players[color].captures(board.players[color].captures() + group.points.length);
+        this.players[color].captures(this.players[color].captures() + group.points.length);
     };
+
+    tg.board = new Board();
 })();
+
