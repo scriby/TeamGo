@@ -14,6 +14,8 @@ var tg = {};
             }
         };
 
+        this.myColor = null;
+
         this.events = new EventEmitter();
 
         for(var i = 0; i < 19; i++){
@@ -57,32 +59,34 @@ var tg = {};
         this.players.black.captures(0);
     };
 
+    Board.prototype._playMove = function(color, x, y){
+        this.rows[y][x].status(color);
 
+        var groups = this.findSurroundingGroups(color, x, y);
 
-    Board.prototype.playMove = function(color, x, y){
-        var playMove = function(board){
-            board.rows[y][x].status(color);
-
-            var groups = board.findSurroundingGroups(color, x, y);
-
-            for(var i = 0; i < groups.length; i++){
-                if(board.isGroupCaptured(groups[i])){
-                    board.capture(color, groups[i]);
-                }
+        for(var i = 0; i < groups.length; i++){
+            if(this.isGroupCaptured(groups[i])){
+                this.capture(color, groups[i]);
             }
-        };
+        }
+    };
+
+    Board.prototype.checkMove = function(color, x, y){
+        if(this.rows[y][x].status() !== 'empty'){
+            return false;
+        }
 
         //Attempt to play the move against a copy of the board to see if it's legal
-        var checkMove = function(board){
-            playMove(board);
-
-            return board.isLegalMove(color, x, y);
-        };
-
         var clone = this.clone();
 
-        if(checkMove(clone)){
-            playMove(this);
+        clone._playMove(color, x, y);
+
+        return clone.isLegalMove(color, x, y);
+    };
+
+    Board.prototype.playMove = function(color, x, y){
+        if(this.checkMove(color, x, y)){
+            this._playMove(color, x, y);
 
             this.twoStatesAgo = this.oneStateAgo;
             this.oneStateAgo = this.getStateString();

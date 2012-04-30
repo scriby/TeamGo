@@ -34,6 +34,8 @@ exports.start = function(){
     });
 
     proc.stderr.on('data', function(data){
+        gtp.receiveError(data.toString());
+
         console.error('stderr: ' + data);
     });
 

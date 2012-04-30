@@ -1,140 +1,206 @@
-
 <!DOCTYPE html>
-<html lang="en" ng-app>
+<html lang="en">
 <head>
-    <meta charset="utf-8">
-    <title>Bootstrap, from Twitter</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="">
-    <meta name="author" content="">
-
-    <!-- Le styles -->
     <link href="/css/bootstrap.css" rel="stylesheet">
-    <style type="text/css">
-        body {
-            padding-top: 60px;
-            padding-bottom: 40px;
-        }
-    </style>
     <link href="/css/bootstrap-responsive.css" rel="stylesheet">
     <link href="/css/teamgo.css" rel="stylesheet">
-
-    <!-- Le HTML5 shim, for IE6-8 support of HTML5 elements -->
-    <!--[if lt IE 9]>
-    <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
-    <![endif]-->
-
+    <link href="/css/board.css" rel="stylesheet">
+    <link href="/css/chat.css" rel="stylesheet">
 </head>
 
 <body>
-
-<div class="navbar navbar-fixed-top">
+<div class="navbar">
     <div class="navbar-inner">
         <div class="container">
-            <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
-                <span class="icon-bar"></span>
-                <span class="icon-bar"></span>
-                <span class="icon-bar"></span>
-            </a>
-            <a class="brand" href="#">Project name</a>
+            <a class="brand" href="#">TeamGo</a>
             <div class="nav-collapse">
-                <ul class="nav">
-                    <li class="active"><a href="#">Home</a></li>
-                    <li><a href="#about">About</a></li>
-                    <li><a href="#contact">Contact</a></li>
-                </ul>
-            </div><!--/.nav-collapse -->
+                <div class="nav pull-right navbar-form">
+                    <a class="btn btn-primary">
+                        <i class="icon-retweet" style="vertical-align: middle"></i>
+                        Link KGS Account
+                    </a>
+                </div>
+            </div>
         </div>
     </div>
 </div>
 
-<div class="container">
+<div class="container-fluid">
+    <div class="row-fluid" style="margin-top:10px">
+        <div class="span8">
+            <div class="game">
+                <!-- spacing between tags is important in the next block to prevent spaces between squares -->
+                <div class="board" data-bind="foreach: rows"><div data-bind="foreach: $data"><div
+                    class="intersection"
+                    data-bind="
+                        click: click,
+                        attr: {
+                            'data-x': $data.x,
+                            'data-y': $data.y
+                        }">
+                        <div class="intersection-inner">
+                            <div class="hoshi">
+                                <div class="stone $data.status()"
+                                     data-bind="
+                                        css: {
+                                            white: status() === 'white',
+                                            black: status() === 'black'
+                                        }
+                                        "
+                                >
+                                </div>
+                            </div>
+                        </div>
+                    </div></div>
+                </div>
+            </div>
+        </div>
+        <div class="span3">
+            <div class="chat well">
+                <div class="chat-messages" data-bind="foreach: messages">
+                    <div class="chat-message">
+                        <span class="chat-message-from" data-bind="text: from"></span>:
+                        <span class="chat-message-text" data-bind="text: text"></span>
+                    </div>
+                </div>
+                <div class="chat-entry form-inline">
+                    <input type="text" data-bind="value: chatMessage, executeOnEnter: sendClick, valueUpdate: 'afterkeydown'" />
 
-    <div class="game">
+                    <a class="btn btn-primary" data-bind="click: sendClick">
+                        <i class="icon-comment" style="vertical-align: middle"></i>
+                        Send
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="game-status row-fluid">
         <div>
             Black captures: <span data-bind="text: players.black.captures()"></span>
         </div>
         <div>
             White captures: <span data-bind="text: players.white.captures()"></span>
         </div>
-        <div class="board" style="float:left" data-bind="foreach: rows">
-            <div class="row" data-bind="foreach: $data">
-                <div class="intersection" data-bind="click: click">
-                    <div class="stone $data.status()"
-                         data-bind="
-                            css: {
-                                white: status() === 'white',
-                                black: status() === 'black'
-                            }"
-
-                    ></div>
-                </div>
-            </div>
-        </div>
     </div>
+</div>
 
-    ​<div style="clear:both"></div>
+    <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
+    <script type="text/javascript" src="/js/jquery.cookie.min.js"></script>
+    <script type="text/javascript" src="/js/knockout.js"></script>
+    <script type="text/javascript" src="/js/EventEmitter.js"></script>
+    <script type="text/javascript" src="/nowjs/now.js"></script>
+    <script type="text/javascript" src="/js/controller/board.js"></script>
+    <script type="text/javascript" src="/js/controller/chat.js"></script>
 
-    <hr>
+    <script type="text/javascript">
+        (function(){
+            var initialized = false;
 
-    <footer>
-        <p>&copy; Company 2012</p>
-    </footer>
-
-</div> <!-- /container -->
-
-<!-- Le javascript
-================================================== -->
-<!-- Placed at the end of the document so the pages load faster -->
-<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
-<script type="text/javascript" src="/js/bootstrap.js"></script>
-
-<script type="text/javascript" src="/js/knockout.js"></script>
-<script type="text/javascript" src="/js/EventEmitter.js"></script>
-<script type="text/javascript" src="/js/controller/board.js"></script>
-
-<script type="text/javascript" src="/nowjs/now.js"></script>
-<script type="text/javascript" src="/js/raphael.js"></script>
-
-<script type="text/javascript">
-    (function(){
-        var initialized = false;
-
-        now.ready(function(){
-            now.playMove = function(color, x, y){
-                console.log(color + ',' + x + ',' + y);
-
-                tg.board.playMove(color, x, y);
+            ko.bindingHandlers.executeOnEnter = {
+                init: function (element, valueAccessor, allBindingsAccessor, viewModel) {
+                    var allBindings = allBindingsAccessor();
+                    $(element).keypress(function (event) {
+                        var keyCode = (event.which ? event.which : event.keyCode);
+                        if (keyCode === 13) {
+                            allBindings.executeOnEnter.call(viewModel);
+                            return false;
+                        }
+                        return true;
+                    });
+                }
             };
 
-            now.genMove = function(color, callback){
-                console.log('genmove '  + color);
+            var getSessionId = function(){
+                var possible = 'abcdefghijklmnopqrstuvwxyz0123456789';
+                var sessionId = '';
 
-                //If the player got disconnected during his turn, the old event handler will still be around
-                tg.board.events.removeAllListeners('intersectionClick');
-                tg.board.events.on('intersectionClick', function(intersection){
-                    if(tg.board.playMove(color, intersection.x, intersection.y)) {
-                        tg.board.events.removeAllListeners('intersectionClick');
-                        callback(null, intersection.x, intersection.y);
-                    }
+                for(var i = 0; i < 16; i++){
+                    sessionId += possible[Math.floor(Math.random() * possible.length)];
+                }
+
+                return sessionId;
+            };
+
+            now.ready(function(){
+                now.playMove = function(color, x, y){
+                    console.log(color + ',' + x + ',' + y);
+
+                    tg.board.playMove(color, x, y);
+                };
+
+                now.genMove = function(color, callback){
+                    console.log('genmove '  + color);
+
+                    tg.board.isMyTurn = true;
+
+                    //If the player got disconnected during his turn, the old event handler will still be around
+                    tg.board.events.removeAllListeners('intersectionClick');
+                    tg.board.events.on('intersectionClick', function(intersection){
+                        if(tg.board.playMove(color, intersection.x, intersection.y)) {
+                            tg.board.isMyTurn = false;
+                            tg.board.events.removeAllListeners('intersectionClick');
+                            callback(null, intersection.x, intersection.y);
+                        }
+                    });
+                };
+
+                now.setColor = function(color){
+                    tg.board.myColor = color;
+                };
+
+                now.clearBoard = function(){
+                    tg.board.clear();
+                };
+
+                now.setUsername = function(username){
+                    console.log(username);
+                };
+
+                var cookie = $.cookie('teamgo');
+                if(cookie == null){
+                    //Security isn't important for this site
+                    var sessionId = getSessionId();
+                    $.cookie('teamgo', JSON.stringify({ s: sessionId }));
+                    cookie = $.cookie('teamgo');
+                }
+
+                cookie = JSON.parse(cookie);
+                now.login(cookie.s, function(){
+                    now.joinPlayers();
                 });
-            };
 
-            now.clearBoard = function(){
-                tg.board.clear();
-            };
+                if(!initialized){
+                    ko.applyBindings(tg.board, $('.board')[0]);
+                    ko.applyBindings(tg.board, $('.game-status')[0]);
 
-            now.join();
+                    $('.board').on('hover', '.stone', function(event){
+                        if(!tg.board.myColor || !tg.board.isMyTurn) {
+                            return;
+                        }
 
-            if(!initialized){
-                var gameRoot = $('.game')[0];
-                ko.applyBindings(tg.board, gameRoot);
+                        var target = $(event.target);
+                        var intersection = target.closest('[data-x]');
 
-                initialized = true;
-            }
-        });
-    })();
-</script>
+                        var x = parseInt(intersection.attr('data-x'));
+                        var y = parseInt(intersection.attr('data-y'));
+
+                        if(event.type === 'mouseenter') {
+                            if(tg.board.checkMove(tg.board.myColor, x, y)){
+                                target.addClass('preview-' + tg.board.myColor);
+                            }
+                        } else {
+                                target.removeClass('preview-' + tg.board.myColor);
+                        }
+                    });
+
+                    var chatRoot = $('.chat')[0];
+                    ko.applyBindings(tg.chat, chatRoot);
+
+                    initialized = true;
+                }
+            });
+        })();
+    </script>
 
 </body>
 </html>

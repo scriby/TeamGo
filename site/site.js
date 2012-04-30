@@ -3,6 +3,8 @@ var nowjs = require("now");
 var gts_gtp = require('../kgs_gtp.js');
 
 var app = express.createServer();
+
+//todo: check on cookie security
 app.use(express.static(__dirname + '/web'));
 
 var server = app.listen(8000);
@@ -11,11 +13,33 @@ var everyone = nowjs.initialize(server);
 var players = nowjs.getGroup('players');
 players._moves = [];
 
-everyone.on('join', function () {
-    players.addUser(this.user.clientId);
-});
+var sessionStore = Object.create(null);
+var clientMapping = Object.create(null);
 
-players.now.join = function(){
+var getSession = function(clientId){
+    return sessionStore[clientMapping[clientId]];
+};
+
+everyone.now.login = function(sessionId, callback) {
+    if(sessionStore[sessionId] == null){
+        sessionStore[sessionId] = {};
+    }
+
+    clientMapping[this.user.clientId] = sessionId;
+
+    var session = sessionStore[sessionId];
+
+    if(session.username == null){
+        session.username = "Guest " + Math.floor(Math.random() * 10000);
+        this.now.setUsername(session.username);
+    }
+
+    players.addUser(this.user.clientId);
+
+    callback();
+};
+
+players.now.joinPlayers = function(){
     var self = this;
 
     this.now.clearBoard();
@@ -27,6 +51,16 @@ players.now.join = function(){
 
     if(players._genmove){
         gts_gtp.gtp.commands.genmove.apply(null, players._genmove);
+    }
+
+    if(players.color){
+        players.now.setColor(players.color);
+    }
+};
+
+players.now.sendChat = function(text){
+    if(players.now.receiveChat){
+        players.now.receiveChat(getSession(this.user.clientId).username, text);
     }
 };
 
@@ -117,6 +151,16 @@ gts_gtp.gtp.commands.play = function(args, callback){
         players.now.playMove(color, coord.x, coord.y);
     }
     players._moves.push({color: color, x: coord.x, y: coord.y });
+
+    callback();
+};
+
+gts_gtp.gtp.commands['assign-color'] = function(args, callback){
+    players.color = args;
+
+    if(players.now.setColor){
+        players.now.setColor(args);
+    }
 
     callback();
 };

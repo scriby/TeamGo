@@ -1,0 +1,21 @@
+.chat {
+
+}
+
+.chat .chat-messages {
+    height:808px;
+    overflow:auto;
+    overflow-x:hidden;
+}
+
+.chat .chat-message-from{
+    font-weight: bold;
+}
+
+.chat .chat-entry {
+    margin-top: -20px;
+}
+
+.chat .chat-entry input[type="text"] {
+    width:70%
+}

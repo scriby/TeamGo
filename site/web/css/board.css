@@ -1,0 +1,147 @@
+.game {
+    text-align: center;
+    width:100%
+}
+
+.board {
+    line-height:0px;
+    background-image: url("/image/wood.jpg"); /* http://zooboingreview.blogspot.com/ */
+    display:inline-block;
+    min-width:855px;
+}
+
+.board .intersection {
+    display:inline-block;
+    position:relative;
+
+    background-image: url("/image/black-vertical.png");
+    background-position: center;
+    background-repeat: no-repeat;
+    width:45px;
+    height:45px;
+}
+
+.board .intersection-inner {
+    position:absolute;
+    width:45px;
+    height:45px;
+    background-position: center;
+    background-image: url("/image/black-horizontal.png");
+    background-repeat: no-repeat;
+}
+
+.board .intersection[data-y="0"] {
+    background-position: center 22px;
+}
+
+.board .intersection[data-y="18"] {
+    background-position: center -78px;
+}
+
+.board .intersection[data-x="0"] .intersection-inner {
+    background-position: 22px center;
+}
+
+.board .intersection[data-x="18"] .intersection-inner {
+    background-position: -78px center;
+}
+
+.board .intersection[data-x="3"][data-y="3"] .hoshi {
+    background-image: url("/image/black-dot.png");
+    background-repeat: no-repeat;
+    background-position: center;
+    width:45px;
+    height:45px;
+}
+
+.board .intersection[data-x="9"][data-y="3"] .hoshi {
+    background-image: url("/image/black-dot.png");
+    background-repeat: no-repeat;
+    background-position: center;
+    width:45px;
+    height:45px;
+}
+
+.board .intersection[data-x="15"][data-y="3"] .hoshi {
+    background-image: url("/image/black-dot.png");
+    background-repeat: no-repeat;
+    background-position: center;
+    width:45px;
+    height:45px;
+}
+
+.board .intersection[data-x="3"][data-y="9"] .hoshi {
+    background-image: url("/image/black-dot.png");
+    background-repeat: no-repeat;
+    background-position: center;
+    width:45px;
+    height:45px;
+}
+
+.board .intersection[data-x="9"][data-y="9"] .hoshi {
+    background-image: url("/image/black-dot.png");
+    background-repeat: no-repeat;
+    background-position: center;
+    width:45px;
+    height:45px;
+}
+
+.board .intersection[data-x="15"][data-y="9"] .hoshi {
+    background-image: url("/image/black-dot.png");
+    background-repeat: no-repeat;
+    background-position: center;
+    width:45px;
+    height:45px;
+}
+
+.board .intersection[data-x="3"][data-y="15"] .hoshi {
+    background-image: url("/image/black-dot.png");
+    background-repeat: no-repeat;
+    background-position: center;
+    width:45px;
+    height:45px;
+}
+
+.board .intersection[data-x="9"][data-y="15"] .hoshi {
+    background-image: url("/image/black-dot.png");
+    background-repeat: no-repeat;
+    background-position: center;
+    width:45px;
+    height:45px;
+}
+
+.board .intersection[data-x="15"][data-y="15"] .hoshi {
+    background-image: url("/image/black-dot.png");
+    background-repeat: no-repeat;
+    background-position: center;
+    width:45px;
+    height:45px;
+}
+
+.board .stone {
+    position:absolute;
+    width:45px;
+    height:45px;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+.board .stone.preview-white {
+    opacity: .5;
+    background-image: url("/image/white-stone.png");
+}
+
+.board .stone.preview-black {
+    opacity: .5;
+    background-image: url("/image/black-stone.png");
+}
+
+.board .stone.white {
+    opacity: 1;
+    background-image: url("/image/white-stone.png");
+}
+
+.board .stone.black {
+    opacity: 1;
+    background-image: url("/image/black-stone.png");
+}

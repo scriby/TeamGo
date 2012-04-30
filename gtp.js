@@ -90,6 +90,16 @@ var GTP = function(clientName, clientVersion) {
 
         handle(command, args, cb);
     };
+
+    var colorRegex = /Starting game as ([^\s]+) against ([^\s]+)/;
+    this.receiveError = function(text){
+        //Parse KGS message to figure out which color we are
+        var match = colorRegex.exec(text);
+        if(match){
+            var color = match[1];
+            handle('assign-color', color, function(){});
+        }
+    };
 };
 
 if(typeof exports !== 'undefined'){
