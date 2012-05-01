@@ -27,10 +27,10 @@ var tg = {};
                     x: j,
                     y: i,
                     status: ko.observable('empty'),
+                    votes: ko.observable(0),
+                    preview: ko.observable(false),
                     click: function(intersection){
-                        if(intersection.status() === 'empty'){
-                            self.events.emit('intersectionClick', intersection);
-                        }
+                        self.events.emit('intersectionClick', intersection);
                     }
                 });
             }
@@ -59,7 +59,40 @@ var tg = {};
         this.players.black.captures(0);
     };
 
+    Board.prototype.addVote = function(color, x, y){
+        var item = this.rows[y][x];
+        item.preview(true);
+        item.status(color);
+        item.votes(item.votes() + 1);
+    };
+
+    Board.prototype.removeVote = function(color, x, y){
+        var item = this.rows[y][x];
+        item.votes(item.votes() - 1);
+
+        if(item.votes() <= 0) {
+            item.status('empty');
+            item.preview(false);
+        }
+    };
+
+    Board.prototype.removeAllVotes = function(){
+        for(var i = 0; i < this.rows.length; i++){
+            var row = this.rows[i];
+
+            for(var j = 0; j < row.length; j++){
+                if(row[j].votes() > 0){
+                    console.log('removing votes');
+                    row[j].preview(false);
+                    row[j].status('empty');
+                    row[j].votes(0);
+                }
+            }
+        }
+    };
+
     Board.prototype._playMove = function(color, x, y){
+        this.removeAllVotes();
         this.rows[y][x].status(color);
 
         var groups = this.findSurroundingGroups(color, x, y);
@@ -72,7 +105,7 @@ var tg = {};
     };
 
     Board.prototype.checkMove = function(color, x, y){
-        if(this.rows[y][x].status() !== 'empty'){
+        if(this.getColor(x, y) !== 'empty'){
             return false;
         }
 
@@ -103,9 +136,9 @@ var tg = {};
         for(var i = 0; i < this.rows.length; i++){
             var row = this.rows[i];
             for(var j = 0; j < row.length; j++){
-                if(row[j].status() === 'black'){
+                if(row[j].status() === 'black' && !row[j].preview()){
                     state += 'b';
-                } else if(row[j].status() === 'white') {
+                } else if(row[j].status() === 'white' && !row[j].preview()) {
                     state += 'w';
                 } else {
                     state += '+';
@@ -156,6 +189,10 @@ var tg = {};
             return;
         }
 
+        if(this.rows[y][x].preview()){
+            return 'empty';
+        }
+
         return this.rows[y][x].status();
     };
 
@@ -196,7 +233,7 @@ var tg = {};
             points: []
         };
 
-        var color = this.rows[y][x].status();
+        var color = this.getColor(x, y);
         if(color === 'empty'){
             return group;
         }
@@ -214,7 +251,7 @@ var tg = {};
 
             checked[x + ',' + y] = true;
 
-            if(self.rows[y][x].status() === color){
+            if(self.getColor(x, y) === color){
                 group.points.push({x: x, y: y});
 
                 getCardinalPoints(x, y).forEach(function(point){

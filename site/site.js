@@ -126,16 +126,89 @@ var fromGtpColor = function(color){
     }
 };
 
+players.votes = Object.create(null);
+
+var finalizeMove = function(color, callback){
+    return function(){
+        //Voting finished
+        var votes = {};
+        Object.keys(players.votes).forEach(function(key){
+            var vote = players.votes[key];
+            var voteString = vote.x + ',' + vote.y;
+
+            if(votes[voteString] == null){
+                votes[voteString] = 0;
+            }
+
+            votes[voteString]++;
+        });
+
+        //At the end of those, mostVoted should contain the moves with the most number of votes (more than one if two moves had equal votes)
+        var mostVoted = [];
+        Object.keys(votes).forEach(function(point){
+            var voteCount = votes[point];
+
+            if(mostVoted.length === 0){
+                mostVoted.push({ point: point, voteCount: voteCount});
+            } else if(voteCount >= mostVoted[0].voteCount){
+                //Clear out moves with less votes
+                if(voteCount > mostVoted[0].voteCount){
+                    mostVoted = [];
+                }
+
+                mostVoted.push({ point: point, voteCount: voteCount});
+            }
+        });
+
+        if(mostVoted.length === 0){
+            players.finalizeTimeoutId = setTimeout(finalizeMove(color, callback), 30 * 1000);
+            return;
+        }
+
+        //Choose a move randomly
+        var move = mostVoted[Math.floor(Math.random() * mostVoted.length)];
+        var x = parseInt(move.point.substring(0, move.point.indexOf(',')));
+        var y = parseInt(move.point.substring(move.point.indexOf(',') + 1));
+
+        players._genmove = null;
+        players._moves.push({color: color, x: x, y: y});
+        players.now.playMove(color, x, y);
+
+        //Reset votes dictionary
+        players.votes = Object.create(null);
+
+        clearTimeout(players.finalizeTimeoutId);
+
+        callback(null, toVertex(x, y));
+    }
+};
+
 gts_gtp.gtp.commands.genmove = function(args, callback){
     var color = fromGtpColor(args);
     players._genmove = arguments;
+    var finalize = finalizeMove(color, callback);
+
+    var secondsAllowed = 27;
+    players.finalizeTimeoutId = setTimeout(finalize, secondsAllowed * 1000);
 
     if(players.now.genMove){
-        players.now.genMove(color, function(err, x, y){
-            players._genmove = null;
-            players._moves.push({color: color, x: x, y: y});
+        players.now.genMove(color, secondsAllowed, function(err, x, y){
+            var username = getSession(this.user.clientId).username;
+            var existingVote = players.votes[username];
+            if(existingVote != null){
+                players.now.removeVote(color, existingVote.x, existingVote.y);
+            }
+            players.votes[username] = {x: x, y: y};
 
-            callback(err, toVertex(x, y));
+            players.count(function(count){
+                //If only one player, play the move without waiting
+                if(count < 2){
+                    finalize();
+                } else {
+                    //Show the vote
+                    players.now.addVote(color, x, y);
+                }
+            });
         });
     }
 };

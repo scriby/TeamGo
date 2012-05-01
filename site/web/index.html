@@ -44,8 +44,14 @@
                                      data-bind="
                                         css: {
                                             white: status() === 'white',
-                                            black: status() === 'black'
-                                        }
+                                            black: status() === 'black',
+                                            'vote-1': votes() === 1,
+                                            'vote-2': votes() === 2,
+                                            'vote-3': votes() === 3,
+                                            'vote-4': votes() === 4,
+                                            'vote-5': votes() >= 5
+                                        },
+                                        text: votes() > 0 ? votes() : ''
                                         "
                                 >
                                 </div>
@@ -125,10 +131,13 @@
                 now.playMove = function(color, x, y){
                     console.log(color + ',' + x + ',' + y);
 
+                    tg.board.isMyTurn = false;
+                    tg.board.events.removeAllListeners('intersectionClick');
+
                     tg.board.playMove(color, x, y);
                 };
 
-                now.genMove = function(color, callback){
+                now.genMove = function(color, secondsAllowed, callback){
                     console.log('genmove '  + color);
 
                     tg.board.isMyTurn = true;
@@ -136,10 +145,9 @@
                     //If the player got disconnected during his turn, the old event handler will still be around
                     tg.board.events.removeAllListeners('intersectionClick');
                     tg.board.events.on('intersectionClick', function(intersection){
-                        if(tg.board.playMove(color, intersection.x, intersection.y)) {
-                            tg.board.isMyTurn = false;
-                            tg.board.events.removeAllListeners('intersectionClick');
+                        if(tg.board.checkMove(color, intersection.x, intersection.y)) {
                             callback(null, intersection.x, intersection.y);
+                            //now.voteForMove(intersection.x, intersection.y);
                         }
                     });
                 };
@@ -154,6 +162,14 @@
 
                 now.setUsername = function(username){
                     console.log(username);
+                };
+
+                now.addVote = function(color, x, y){
+                    tg.board.addVote(color, x, y);
+                };
+
+                now.removeVote = function(color, x, y){
+                    tg.board.removeVote(color, x, y);
                 };
 
                 var cookie = $.cookie('teamgo');
@@ -174,11 +190,15 @@
                     ko.applyBindings(tg.board, $('.game-status')[0]);
 
                     $('.board').on('hover', '.stone', function(event){
+                        var target = $(event.target);
+                        if(event.type === 'mouseleave') {
+                            target.removeClass('preview-' + tg.board.myColor);
+                        }
+
                         if(!tg.board.myColor || !tg.board.isMyTurn) {
                             return;
                         }
 
-                        var target = $(event.target);
                         var intersection = target.closest('[data-x]');
 
                         var x = parseInt(intersection.attr('data-x'));
@@ -188,8 +208,6 @@
                             if(tg.board.checkMove(tg.board.myColor, x, y)){
                                 target.addClass('preview-' + tg.board.myColor);
                             }
-                        } else {
-                                target.removeClass('preview-' + tg.board.myColor);
                         }
                     });
 

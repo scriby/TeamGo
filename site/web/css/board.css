@@ -124,24 +124,52 @@
     height:45px;
     background-position: center;
     background-repeat: no-repeat;
-}
 
-.board .stone.preview-white {
-    opacity: .5;
-    background-image: url("/image/white-stone.png");
-}
-
-.board .stone.preview-black {
-    opacity: .5;
-    background-image: url("/image/black-stone.png");
+    text-align: center;
+    font-size: 26px;
+    line-height: 45px;
+    cursor: default;
+    font-weight:bold;
 }
 
 .board .stone.white {
     opacity: 1;
     background-image: url("/image/white-stone.png");
+    color: black;
 }
 
 .board .stone.black {
     opacity: 1;
+    background-image: url("/image/black-stone.png");
+    color: white;
+}
+
+.board .stone.vote-1 {
+    opacity: .5
+}
+
+.board .stone.vote-2 {
+    opacity: .55
+}
+
+.board .stone.vote-3 {
+    opacity: .6;
+}
+
+.board .stone.vote-4 {
+    opacity: .7;
+}
+
+.board .stone.vote-5 {
+    opacity: .8;
+}
+
+.board .stone.preview-white {
+    opacity: .7;
+    background-image: url("/image/white-stone.png");
+}
+
+.board .stone.preview-black {
+    opacity: .7;
     background-image: url("/image/black-stone.png");
 }
