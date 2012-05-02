@@ -39,6 +39,8 @@ everyone.now.login = function(sessionId, callback) {
     callback();
 };
 
+players.now.inGame = false;
+
 players.now.joinPlayers = function(){
     var self = this;
 
@@ -126,6 +128,7 @@ var fromGtpColor = function(color){
     }
 };
 
+players.secondsPerMove = 27;
 players.votes = Object.create(null);
 
 var finalizeMove = function(color, callback){
@@ -161,6 +164,7 @@ var finalizeMove = function(color, callback){
         });
 
         if(mostVoted.length === 0){
+            players.genMoveStarted = new Date();
             players.finalizeTimeoutId = setTimeout(finalizeMove(color, callback), 30 * 1000);
             return;
         }
@@ -178,18 +182,27 @@ var finalizeMove = function(color, callback){
         players.votes = Object.create(null);
 
         clearTimeout(players.finalizeTimeoutId);
+        players.finalizeTimeoutId = null;
 
         callback(null, toVertex(x, y));
     }
 };
 
 gts_gtp.gtp.commands.genmove = function(args, callback){
+    players.now.inGame = true;
+
     var color = fromGtpColor(args);
     players._genmove = arguments;
     var finalize = finalizeMove(color, callback);
 
-    var secondsAllowed = 27;
-    players.finalizeTimeoutId = setTimeout(finalize, secondsAllowed * 1000);
+    var secondsAllowed = players.secondsPerMove;
+    if(players.finalizeTimeoutId){
+        //Reuse existing finalize handler and just send the current seconds left
+        secondsAllowed = players.secondsPerMove - Math.floor(((new Date()) - players.genMoveStarted) / 1000);
+    } else {
+        players.genMoveStarted = new Date();
+        players.finalizeTimeoutId = setTimeout(finalize, secondsAllowed * 1000);
+    }
 
     if(players.now.genMove){
         players.now.genMove(color, secondsAllowed, function(err, x, y){
@@ -215,6 +228,8 @@ gts_gtp.gtp.commands.genmove = function(args, callback){
 
 var playRegex = /([^\s]+)\s([^\s]+)/;
 gts_gtp.gtp.commands.play = function(args, callback){
+    players.now.inGame = true;
+
     var match = playRegex.exec(args);
 
     var color = fromGtpColor(match[1]);
@@ -224,6 +239,12 @@ gts_gtp.gtp.commands.play = function(args, callback){
         players.now.playMove(color, coord.x, coord.y);
     }
     players._moves.push({color: color, x: coord.x, y: coord.y });
+
+    callback();
+};
+
+gts_gtp.gtp.commands.quit = function(args, callback){
+    players.now.inGame = false;
 
     callback();
 };

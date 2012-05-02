@@ -28,9 +28,12 @@
 <div class="container-fluid">
     <div class="row-fluid" style="margin-top:10px">
         <div class="span8">
-            <div class="game">
+            <div class="game" data-bind="visible: doneLoading" style="display:none">
+                <h3 data-bind="visible: !gameInProgress()">
+                    TeamGo is not currently playing a game.
+                </h3>
                 <!-- spacing between tags is important in the next block to prevent spaces between squares -->
-                <div class="board" data-bind="foreach: rows"><div data-bind="foreach: $data"><div
+                <div class="board" data-bind="visible: gameInProgress, foreach: rows"><div data-bind="foreach: $data"><div
                     class="intersection"
                     data-bind="
                         click: click,
@@ -87,6 +90,11 @@
         <div>
             White captures: <span data-bind="text: players.white.captures()"></span>
         </div>
+        <div>
+            <span data-bind="visible: remainingSeconds() > 0">
+                Move timer: <span data-bind="text: remainingSeconds"></span> seconds
+            </span>
+        </div>
     </div>
 </div>
 
@@ -97,6 +105,7 @@
     <script type="text/javascript" src="/nowjs/now.js"></script>
     <script type="text/javascript" src="/js/controller/board.js"></script>
     <script type="text/javascript" src="/js/controller/chat.js"></script>
+
 
     <script type="text/javascript">
         (function(){
@@ -131,13 +140,22 @@
                 now.playMove = function(color, x, y){
                     console.log(color + ',' + x + ',' + y);
 
+                    tg.board.stopCountdownTimer();
                     tg.board.isMyTurn = false;
                     tg.board.events.removeAllListeners('intersectionClick');
 
                     tg.board.playMove(color, x, y);
                 };
 
-                now.genMove = function(color, secondsAllowed, callback){
+                now.genMove = function(color, secondsLeft, callback){
+                    //Ignore additional genMove calls that might come when new players join
+                    if(tg.board.isMyTurn){
+                        return;
+                    }
+
+                    tg.board.remainingSeconds(secondsLeft);
+                    tg.board.startCountdownTimer();
+
                     console.log('genmove '  + color);
 
                     tg.board.isMyTurn = true;
@@ -147,7 +165,6 @@
                     tg.board.events.on('intersectionClick', function(intersection){
                         if(tg.board.checkMove(color, intersection.x, intersection.y)) {
                             callback(null, intersection.x, intersection.y);
-                            //now.voteForMove(intersection.x, intersection.y);
                         }
                     });
                 };
@@ -172,6 +189,10 @@
                     tg.board.removeVote(color, x, y);
                 };
 
+                setInterval(function(){
+                    tg.board.gameInProgress(now.inGame);
+                }, 1000);
+
                 var cookie = $.cookie('teamgo');
                 if(cookie == null){
                     //Security isn't important for this site
@@ -186,7 +207,7 @@
                 });
 
                 if(!initialized){
-                    ko.applyBindings(tg.board, $('.board')[0]);
+                    ko.applyBindings(tg.board, $('.game')[0]);
                     ko.applyBindings(tg.board, $('.game-status')[0]);
 
                     $('.board').on('hover', '.stone', function(event){

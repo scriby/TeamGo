@@ -14,9 +14,16 @@ var tg = {};
             }
         };
 
+        this.gameInProgress = ko.observable(false);
+        this.doneLoading = ko.observable(true);
+
         this.myColor = null;
 
         this.events = new EventEmitter();
+
+        this.secondsPerMove = 27;
+        this.byoYomiSeconds = 30;
+        this.remainingSeconds = ko.observable();
 
         for(var i = 0; i < 19; i++){
             var row = [];
@@ -35,6 +42,31 @@ var tg = {};
                 });
             }
         }
+    };
+
+    Board.prototype.startCountdownTimer = function(){
+        var start = new Date();
+        var self = this;
+        var allowedSeconds = self.remainingSeconds();
+        console.log(allowedSeconds);
+
+        this.countdownTimer = setInterval(function(){
+            var currentTime = new Date();
+
+            var secondsElapsed = (currentTime - start) / 1000;
+
+            self.remainingSeconds(Math.round(allowedSeconds - secondsElapsed));
+
+            if(secondsElapsed > allowedSeconds){
+                start = new Date();
+                allowedSeconds = self.byoYomiSeconds;
+            }
+        }, 1000);
+    };
+
+    Board.prototype.stopCountdownTimer = function(){
+        this.remainingSeconds(0);
+        clearInterval(this.countdownTimer);
     };
 
     Board.prototype.clone = function(){
