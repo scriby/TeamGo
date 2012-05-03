@@ -1,6 +1,6 @@
 .game {
-    text-align: center;
-    width:100%
+    /*text-align: center;
+    width:100%*/
 }
 
 .board {
@@ -172,4 +172,12 @@
 .board .stone.preview-black {
     opacity: .7;
     background-image: url("/image/black-stone.png");
+}
+
+.player-display .player-display-info {
+    margin-left:1em;
+}
+
+.player-display .player-time{
+    margin-left: 1em;
 }

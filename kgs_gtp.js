@@ -2,10 +2,6 @@ var child_process = require('child_process');
 var path = require('path');
 var gtp = require('./gtp.js')('TeamGo.us', '0.1');
 
-gtp.commands['kgs-chat'] = function(args, callback){
-    callback(null, 'Join the online sensation at http://www.TeamGo.us');
-};
-
 exports.start = function(){
     var proc = child_process.spawn(
         'java',
@@ -41,7 +37,13 @@ exports.start = function(){
 
     proc.on('exit', function(code){
         console.log('Exited with code ' + code);
-    })
+
+        console.log('Restarting...');
+
+        proc = exports.start();
+    });
+
+    return proc;
 };
 
 exports.gtp = gtp;

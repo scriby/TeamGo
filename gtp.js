@@ -91,13 +91,16 @@ var GTP = function(clientName, clientVersion) {
         handle(command, args, cb);
     };
 
-    var colorRegex = /Starting game as ([^\s]+) against ([^\s]+)/;
+    var colorPlayerRegex = /Starting game as ([^\s]+) against ([^\s]+)/;
+    //KGS logs status info to stderr. We can parse it to get more information
     this.receiveError = function(text){
         //Parse KGS message to figure out which color we are
-        var match = colorRegex.exec(text);
+        var match = colorPlayerRegex.exec(text);
         if(match){
             var color = match[1];
+            var player = match[2];
             handle('assign-color', color, function(){});
+            handle('opponent-name', player, function(){});
         }
     };
 };

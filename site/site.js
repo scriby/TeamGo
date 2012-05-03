@@ -1,6 +1,7 @@
 var express = require('express');
 var nowjs = require("now");
 var gts_gtp = require('../kgs_gtp.js');
+var kgs = require('../kgs.js');
 
 var app = express.createServer();
 
@@ -18,6 +19,14 @@ var clientMapping = Object.create(null);
 
 var getSession = function(clientId){
     return sessionStore[clientMapping[clientId]];
+};
+
+var getOppositeColor = function(color){
+    if(color === 'white'){
+        return 'black';
+    } else {
+        return 'white;'
+    }
 };
 
 everyone.now.login = function(sessionId, callback) {
@@ -62,7 +71,8 @@ players.now.joinPlayers = function(){
 
 players.now.sendChat = function(text){
     if(players.now.receiveChat){
-        players.now.receiveChat(getSession(this.user.clientId).username, text);
+        var session = getSession(this.user.clientId);
+        players.now.receiveChat(session.username, session.rank, text);
     }
 };
 
@@ -184,6 +194,7 @@ var finalizeMove = function(color, callback){
         clearTimeout(players.finalizeTimeoutId);
         players.finalizeTimeoutId = null;
 
+        players.now.whoseTurn = getOppositeColor(color);
         callback(null, toVertex(x, y));
     }
 };
@@ -192,6 +203,8 @@ gts_gtp.gtp.commands.genmove = function(args, callback){
     players.now.inGame = true;
 
     var color = fromGtpColor(args);
+
+    players.now.whoseTurn = color;
     players._genmove = arguments;
     var finalize = finalizeMove(color, callback);
 
@@ -251,12 +264,97 @@ gts_gtp.gtp.commands.quit = function(args, callback){
 
 gts_gtp.gtp.commands['assign-color'] = function(args, callback){
     players.color = args;
+    players.now.inGame = true;
 
+    players.now.myColor = args;
     if(players.now.setColor){
         players.now.setColor(args);
     }
 
     callback();
 };
+
+gts_gtp.gtp.commands['opponent-name'] = function(args, callback){
+    players.now.opponentName = args;
+    players.now.inGame = true;
+
+    kgs.getUserRank(args, function(err, rank){
+        players.now.opponentRank = rank;
+    });
+
+    callback();
+};
+
+var timeSettingsRegex = /byoyomi (\d+) (\d+) (\d+)/i;
+gts_gtp.gtp.commands['kgs-time_settings'] = function(args, callback){
+    var match = timeSettingsRegex.exec(args);
+
+    players.now.timeSettings = { type: 'byoyomi', mainTime: match[1], byoyomiTime: match[2], byoyomiCount: match[3] };
+
+    callback();
+};
+
+var timeLeftRegex = /([bw]) (\d+)/i;
+gts_gtp.gtp.commands['time_left'] = function(args, callback){
+    var match = timeLeftRegex.exec(args);
+
+    var color = fromGtpColor(match[1]);
+    var seconds = parseInt(match[2]);
+
+    if(players.now.timeLeft == null){
+        players.now.timeLeft = {
+            white: null,
+            black: null
+        }
+    }
+
+    players.now.timeLeft[color] = seconds;
+
+    callback();
+};
+
+var linkKgsAccount = function(sessionId, name, callback){
+    var session = sessionStore[sessionId];
+
+    if(session == null){
+        return callback(null, 'A problem occurred when linking the account: Could not find TeamGo user');
+    }
+
+    session.username = name;
+
+    kgs.getUserRank(name, function(err, rank){
+        session.rank = rank;
+    });
+
+    callback(null, 'Account ' + name + ' linked successfully. Please note that you will need to reset your account again in the future if the TeamGo server resets.');
+};
+
+var chatKgsLinkRegex = /([^\s]+) link (.*)/i;
+gts_gtp.gtp.commands['kgs-chat'] = function(args, callback){
+    var match = chatKgsLinkRegex.exec(args);
+    if(match != null){
+        return linkKgsAccount(match[2], match[1], callback);
+    }
+
+    callback(null, 'Join the online sensation at http://www.TeamGo.us');
+};
+
+setInterval(function(){
+    var timeLeft = players.now.timeLeft;
+    if(timeLeft != null && players.now.myColor === players.now.whoseTurn){
+        if(timeLeft.white != null){
+            timeLeft.white--;
+        }
+
+        if(timeLeft.black != null){
+            timeLeft.black--;
+        }
+    }
+
+    players.count(function(count){
+        players.now.playerCount = count;
+    });
+
+}, 1000);
 
 gts_gtp.start();

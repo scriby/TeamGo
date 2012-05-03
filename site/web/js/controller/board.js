@@ -7,15 +7,44 @@ var tg = {};
         this.rows = [];
         this.players = {
             white: {
-                captures: ko.observable(0)
+                captures: ko.observable(0),
+                name: ko.observable(),
+                timeLeft: ko.observable(),
+                rank: ko.observable()
             },
             black: {
-                captures: ko.observable(0)
+                captures: ko.observable(0),
+                name: ko.observable(),
+                timeLeft: ko.observable(),
+                rank: ko.observable()
             }
         };
 
+        var formatTime = function(totalSeconds){
+            if(totalSeconds > 0){
+                var seconds = (totalSeconds % 60);
+                if(seconds < 10){
+                    seconds = '0' + seconds;
+                }
+                return parseInt(totalSeconds / 60) + ':' + seconds;
+            }
+        };
+
+        this.players.white.formattedTimeLeft = ko.computed({
+            read: function(){
+                return formatTime(self.players.white.timeLeft());
+            }
+        });
+
+        this.players.black.formattedTimeLeft = ko.computed({
+            read: function(){
+                return formatTime(self.players.black.timeLeft());
+            }
+        });
+
         this.gameInProgress = ko.observable(false);
         this.doneLoading = ko.observable(true);
+        this.playerCount = ko.observable();
 
         this.myColor = null;
 
@@ -41,6 +70,20 @@ var tg = {};
                     }
                 });
             }
+        }
+    };
+
+    Board.prototype.setOpponent = function(name, rank){
+        if(this.myColor === 'white'){
+            this.players.black.name(name);
+            this.players.black.rank(rank);
+
+            this.players.white.name('TeamGo');
+        } else {
+            this.players.white.name(name);
+            this.players.white.rank(rank);
+
+            this.players.black.name('TeamGo');
         }
     };
 

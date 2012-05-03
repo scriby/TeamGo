@@ -12,10 +12,10 @@
 <div class="navbar">
     <div class="navbar-inner">
         <div class="container">
-            <a class="brand" href="#">TeamGo</a>
+            <a class="brand" href="#">TeamGo [beta]</a>
             <div class="nav-collapse">
                 <div class="nav pull-right navbar-form">
-                    <a class="btn btn-primary">
+                    <a data-toggle="modal" href="#kgs-link-modal" class="btn btn-primary">
                         <i class="icon-retweet" style="vertical-align: middle"></i>
                         Link KGS Account
                     </a>
@@ -26,6 +26,52 @@
 </div>
 
 <div class="container-fluid">
+    <div class="game-status row-fluid">
+        <div class="span4 player-display">
+            <h2>
+                Black
+            </h2>
+            <div class="player-display-info">
+                <h3>
+                    <span data-bind="text: players.black.name()"></span>
+                    <span data-bind="visible: players.black.rank() != null">
+                        [<span data-bind="text: players.black.rank()"></span>]
+                    </span>
+                    <span class="player-time" data-bind="text: players.black.formattedTimeLeft()"></span>
+                </h3>
+                <h4 data-bind="visible: players.black.captures() > 0">
+                    Captures: <span data-bind="text: players.black.captures()"></span>
+                </h4>
+            </div>
+        </div>
+        <div class="span4 player-display">
+            <h2>
+                White
+            </h2>
+            <div class="player-display-info">
+                <h3>
+                    <span data-bind="text: players.white.name()"></span>
+                    <span data-bind="visible: players.white.rank() != null">
+                        [<span data-bind="text: players.white.rank()"></span>]
+                    </span>
+                    <span class="player-time" data-bind="text: players.white.formattedTimeLeft()"></span>
+                </h3>
+                <h4 data-bind="visible: players.black.captures() > 0">
+                    Captures: <span data-bind="text: players.white.captures()"></span>
+                </h4>
+            </div>
+        </div>
+        <div class="span4">
+            <h3>
+                TeamGo players: <span data-bind="text: playerCount"></span>
+            </h3>
+            <!--div>
+                <span data-bind="visible: remainingSeconds() > 0">
+                    Move timer: <span data-bind="text: remainingSeconds"></span> seconds
+                </span>
+            </div-->
+        </div>
+    </div>
     <div class="row-fluid" style="margin-top:10px">
         <div class="span8">
             <div class="game" data-bind="visible: doneLoading" style="display:none">
@@ -64,11 +110,14 @@
                 </div>
             </div>
         </div>
-        <div class="span3">
+        <div class="span4">
             <div class="chat well">
                 <div class="chat-messages" data-bind="foreach: messages">
                     <div class="chat-message">
-                        <span class="chat-message-from" data-bind="text: from"></span>:
+                        <span class="chat-message-from" data-bind="text: from"></span>
+                        <span class="chat-message-rank" data-bind="visible: rank != null">
+                            [<span data-bind="text: rank"></span>]
+                        </span>:
                         <span class="chat-message-text" data-bind="text: text"></span>
                     </div>
                 </div>
@@ -83,19 +132,6 @@
             </div>
         </div>
     </div>
-    <div class="game-status row-fluid">
-        <div>
-            Black captures: <span data-bind="text: players.black.captures()"></span>
-        </div>
-        <div>
-            White captures: <span data-bind="text: players.white.captures()"></span>
-        </div>
-        <div>
-            <span data-bind="visible: remainingSeconds() > 0">
-                Move timer: <span data-bind="text: remainingSeconds"></span> seconds
-            </span>
-        </div>
-    </div>
 </div>
 
     <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
@@ -105,7 +141,7 @@
     <script type="text/javascript" src="/nowjs/now.js"></script>
     <script type="text/javascript" src="/js/controller/board.js"></script>
     <script type="text/javascript" src="/js/controller/chat.js"></script>
-
+    <script type="text/javascript" src="/js/bootstrap.js"></script>
 
     <script type="text/javascript">
         (function(){
@@ -191,6 +227,16 @@
 
                 setInterval(function(){
                     tg.board.gameInProgress(now.inGame);
+                    if(now.opponentName != null){
+                        tg.board.setOpponent(now.opponentName, now.opponentRank);
+                    }
+
+                    tg.board.playerCount(now.playerCount);
+
+                    if(now.timeLeft){
+                        tg.board.players.white.timeLeft(now.timeLeft.white);
+                        tg.board.players.black.timeLeft(now.timeLeft.black);
+                    }
                 }, 1000);
 
                 var cookie = $.cookie('teamgo');
@@ -202,6 +248,7 @@
                 }
 
                 cookie = JSON.parse(cookie);
+                ko.applyBindings({ message: cookie.s }, $('#kgs-link-modal')[0]);
                 now.login(cookie.s, function(){
                     now.joinPlayers();
                 });
@@ -238,8 +285,30 @@
                     initialized = true;
                 }
             });
+
+            $('.btn-link-kgs-account').on('click', function(event){
+                $('#link-kgs-modal').modal();
+            });
         })();
     </script>
+
+<div class="modal" style="display:none" id="kgs-link-modal">
+    <div class="modal-header">
+        <button class="close" data-dismiss="modal">×</button>
+        <h3>Link KGS Account</h3>
+    </div>
+    <div class="modal-body">
+        <div>
+            Send the following message to the TeamGo account on KGS:
+        </div>
+        <h3 style="margin-top: 1em;margin-left:1em" >
+            link <span data-bind="text: message"></span>
+        </h3>
+    </div>
+    <div class="modal-footer">
+        <a href="#" class="btn btn-primary" data-dismiss="modal">Close</a>
+    </div>
+</div>
 
 </body>
 </html>

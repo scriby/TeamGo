@@ -18,8 +18,8 @@ tg.chat = {};
     };
 
     now.ready(function(){
-        now.receiveChat = function(from, text){
-            chat.messages.push({ from: from, text: text });
+        now.receiveChat = function(from, rank, text){
+            chat.messages.push({ from: from, rank: rank, text: text });
 
             var messages = $('.chat-messages');
             messages.scrollTop(messages.height());
