@@ -277,6 +277,7 @@ gts_gtp.gtp.commands['assign-color'] = function(args, callback){
 gts_gtp.gtp.commands['opponent-name'] = function(args, callback){
     players.now.opponentName = args;
     players.now.inGame = true;
+    players._moves = [];
 
     kgs.getUserRank(args, function(err, rank){
         players.now.opponentRank = rank;

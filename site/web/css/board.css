@@ -1,6 +1,7 @@
 .game {
     /*text-align: center;
     width:100%*/
+    position:relative;
 }
 
 .board {
@@ -172,6 +173,24 @@
 .board .stone.preview-black {
     opacity: .7;
     background-image: url("/image/black-stone.png");
+}
+
+.board-letter {
+    position:absolute;
+    top: -15px;
+    margin-left:19px;
+    font-weight:bold;
+    font-size:smaller;
+}
+
+.board-number {
+    position: absolute;
+    left: -30px;
+    margin-top: 14px;
+    font-weight:bold;
+    font-size:smaller;
+    text-align: right;
+    width: 2em;
 }
 
 .player-display .player-display-info {
