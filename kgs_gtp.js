@@ -40,7 +40,10 @@ exports.start = function(){
 
         console.log('Restarting...');
 
-        proc = exports.start();
+        setTimeout(function(){
+            proc = exports.start();
+        }, 1000);
+
     });
 
     return proc;

@@ -65,16 +65,11 @@
             <h3>
                 TeamGo players: <span data-bind="text: playerCount"></span>
             </h3>
-            <!--div>
-                <span data-bind="visible: remainingSeconds() > 0">
-                    Move timer: <span data-bind="text: remainingSeconds"></span> seconds
-                </span>
-            </div-->
         </div>
     </div>
     <div class="row-fluid" style="margin-top:30px">
         <div class="span8">
-            <div class="game" data-bind="visible: doneLoading" style="display:none">
+            <div class="game" data-bind="visible: doneLoading, css: { 'game-in-progress': gameInProgress(), 'not-game-in-progress': !gameInProgress() }" style="display:none">
                 <h3 data-bind="visible: !gameInProgress()">
                     TeamGo is not currently playing a game.
                 </h3>
@@ -98,7 +93,8 @@
                                             'vote-2': votes() === 2,
                                             'vote-3': votes() === 3,
                                             'vote-4': votes() === 4,
-                                            'vote-5': votes() >= 5
+                                            'vote-5': votes() >= 5,
+                                            confirmed: confirmed()
                                         },
                                         text: votes() > 0 ? votes() : ''
                                         "
@@ -107,6 +103,13 @@
                             </div>
                         </div>
                     </div></div>
+                </div>
+                <div class="row-fluid ">
+                    <div>
+                        <span data-bind="visible: remainingSeconds() > 0">
+                            Move timer: <span data-bind="text: remainingSeconds"></span> seconds
+                        </span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -133,6 +136,7 @@
         </div>
     </div>
 </div>
+
 
     <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
     <script type="text/javascript" src="/js/jquery.cookie.min.js"></script>
@@ -176,21 +180,17 @@
                 now.playMove = function(color, x, y){
                     console.log(color + ',' + x + ',' + y);
 
-                    tg.board.stopCountdownTimer();
                     tg.board.isMyTurn = false;
                     tg.board.events.removeAllListeners('intersectionClick');
 
                     tg.board.playMove(color, x, y);
                 };
 
-                now.genMove = function(color, secondsLeft, callback){
+                now.genMove = function(color, callback){
                     //Ignore additional genMove calls that might come when new players join
                     if(tg.board.isMyTurn){
                         return;
                     }
-
-                    tg.board.remainingSeconds(secondsLeft);
-                    tg.board.startCountdownTimer();
 
                     console.log('genmove '  + color);
 
@@ -200,6 +200,7 @@
                     tg.board.events.removeAllListeners('intersectionClick');
                     tg.board.events.on('intersectionClick', function(intersection){
                         if(tg.board.checkMove(color, intersection.x, intersection.y)) {
+                            console.log('returning move');
                             callback(null, intersection.x, intersection.y);
                         }
                     });
@@ -221,6 +222,14 @@
                     tg.board.addVote(color, x, y);
                 };
 
+                now.confirmVote = function(x, y){
+                    tg.board.confirmVote(x, y);
+                };
+
+                now.unconfirmVote = function(x, y){
+                    tg.board.unconfirmVote(x, y);
+                }
+
                 now.removeVote = function(color, x, y){
                     tg.board.removeVote(color, x, y);
                 };
@@ -232,6 +241,8 @@
                     }
 
                     tg.board.playerCount(now.playerCount);
+
+                    tg.board.remainingSeconds(now.turnTimeRemaining);
 
                     if(now.timeLeft){
                         tg.board.players.white.timeLeft(now.timeLeft.white);

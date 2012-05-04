@@ -64,6 +64,7 @@ var tg = {};
                     y: i,
                     status: ko.observable('empty'),
                     votes: ko.observable(0),
+                    confirmed: ko.observable(false),
                     preview: ko.observable(false),
                     click: function(intersection){
                         self.events.emit('intersectionClick', intersection);
@@ -85,31 +86,6 @@ var tg = {};
 
             this.players.black.name('TeamGo');
         }
-    };
-
-    Board.prototype.startCountdownTimer = function(){
-        var start = new Date();
-        var self = this;
-        var allowedSeconds = self.remainingSeconds();
-        console.log(allowedSeconds);
-
-        this.countdownTimer = setInterval(function(){
-            var currentTime = new Date();
-
-            var secondsElapsed = (currentTime - start) / 1000;
-
-            self.remainingSeconds(Math.round(allowedSeconds - secondsElapsed));
-
-            if(secondsElapsed > allowedSeconds){
-                start = new Date();
-                allowedSeconds = self.byoYomiSeconds;
-            }
-        }, 1000);
-    };
-
-    Board.prototype.stopCountdownTimer = function(){
-        this.remainingSeconds(0);
-        clearInterval(this.countdownTimer);
     };
 
     Board.prototype.clone = function(){
@@ -139,6 +115,16 @@ var tg = {};
         item.preview(true);
         item.status(color);
         item.votes(item.votes() + 1);
+    };
+
+    Board.prototype.confirmVote = function(x, y){
+        var item = this.rows[y][x];
+        item.confirmed(true);
+    };
+
+    Board.prototype.unconfirmVote = function(x, y){
+        var item = this.rows[y][x];
+        item.confirmed(false);
     };
 
     Board.prototype.removeVote = function(color, x, y){

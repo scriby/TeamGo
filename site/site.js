@@ -10,7 +10,7 @@ app.use(express.static(__dirname + '/web'));
 
 var server = app.listen(8000);
 
-var everyone = nowjs.initialize(server);
+var everyone = nowjs.initialize(server, { closureTimeout: 20 * 60 * 1000 });
 var players = nowjs.getGroup('players');
 players._moves = [];
 
@@ -141,41 +141,66 @@ var fromGtpColor = function(color){
 players.secondsPerMove = 27;
 players.votes = Object.create(null);
 
+var getMostVoted = function(){
+    var votes = {};
+    Object.keys(players.votes).forEach(function(key){
+        var vote = players.votes[key];
+        var voteString = vote.x + ',' + vote.y;
+
+        if(votes[voteString] == null){
+            votes[voteString] = 0;
+        }
+
+        votes[voteString]++;
+    });
+
+    //At the end of those, mostVoted should contain the moves with the most number of votes (more than one if two moves had equal votes)
+    var mostVoted = [];
+    Object.keys(votes).forEach(function(point){
+        var voteCount = votes[point];
+
+        if(mostVoted.length === 0){
+            mostVoted.push({ point: point, voteCount: voteCount});
+        } else if(voteCount >= mostVoted[0].voteCount){
+            //Clear out moves with less votes
+            if(voteCount > mostVoted[0].voteCount){
+                mostVoted = [];
+            }
+
+            mostVoted.push({ point: point, voteCount: voteCount});
+        }
+    });
+
+    return mostVoted;
+};
+
+var getNumberOfVotes = function(){
+    var count = 0;
+    Object.keys(players.votes).forEach(function(key){
+        count++;
+    });
+
+    return count;
+};
+
+var getNumberOfConfirmedVotes = function(){
+    var count = 0;
+    Object.keys(players.votes).forEach(function(key){
+        if(players.votes[key].confirmed){
+            count++;
+        }
+    });
+
+    return count;
+};
+
 var finalizeMove = function(color, callback){
     return function(){
         //Voting finished
-        var votes = {};
-        Object.keys(players.votes).forEach(function(key){
-            var vote = players.votes[key];
-            var voteString = vote.x + ',' + vote.y;
-
-            if(votes[voteString] == null){
-                votes[voteString] = 0;
-            }
-
-            votes[voteString]++;
-        });
-
-        //At the end of those, mostVoted should contain the moves with the most number of votes (more than one if two moves had equal votes)
-        var mostVoted = [];
-        Object.keys(votes).forEach(function(point){
-            var voteCount = votes[point];
-
-            if(mostVoted.length === 0){
-                mostVoted.push({ point: point, voteCount: voteCount});
-            } else if(voteCount >= mostVoted[0].voteCount){
-                //Clear out moves with less votes
-                if(voteCount > mostVoted[0].voteCount){
-                    mostVoted = [];
-                }
-
-                mostVoted.push({ point: point, voteCount: voteCount});
-            }
-        });
+        var mostVoted = getMostVoted();
 
         if(mostVoted.length === 0){
             players.genMoveStarted = new Date();
-            players.finalizeTimeoutId = setTimeout(finalizeMove(color, callback), 30 * 1000);
             return;
         }
 
@@ -191,8 +216,8 @@ var finalizeMove = function(color, callback){
         //Reset votes dictionary
         players.votes = Object.create(null);
 
-        clearTimeout(players.finalizeTimeoutId);
-        players.finalizeTimeoutId = null;
+        players.genMoveStarted = null;
+        players.now.turnTimeRemaining = null;
 
         players.now.whoseTurn = getOppositeColor(color);
         callback(null, toVertex(x, y));
@@ -206,35 +231,45 @@ gts_gtp.gtp.commands.genmove = function(args, callback){
 
     players.now.whoseTurn = color;
     players._genmove = arguments;
-    var finalize = finalizeMove(color, callback);
+    players.finalize = finalizeMove(color, callback);
 
-    var secondsAllowed = players.secondsPerMove;
-    if(players.finalizeTimeoutId){
-        //Reuse existing finalize handler and just send the current seconds left
-        secondsAllowed = players.secondsPerMove - Math.floor(((new Date()) - players.genMoveStarted) / 1000);
-    } else {
+    if(!players.genMoveStarted) {
         players.genMoveStarted = new Date();
-        players.finalizeTimeoutId = setTimeout(finalize, secondsAllowed * 1000);
     }
 
     if(players.now.genMove){
-        players.now.genMove(color, secondsAllowed, function(err, x, y){
+        players.now.genMove(color, function(err, x, y){
+            console.log('received move');
+
             var username = getSession(this.user.clientId).username;
             var existingVote = players.votes[username];
-            if(existingVote != null){
-                players.now.removeVote(color, existingVote.x, existingVote.y);
-            }
-            players.votes[username] = {x: x, y: y};
+            var addVote = true;
 
-            players.count(function(count){
-                //If only one player, play the move without waiting
-                if(count < 2){
-                    finalize();
+            if(existingVote != null){
+                if(existingVote.x === x && existingVote.y === y){
+                    if(!existingVote.confirmed){
+                        //If they vote for the same place twice, confirm the vote
+                        players.lastVoteTime = new Date();
+                        existingVote.confirmed = true;
+                        this.now.confirmVote(x, y);
+                    }
+
+                    addVote = false;
                 } else {
-                    //Show the vote
-                    players.now.addVote(color, x, y);
+                    this.now.unconfirmVote(existingVote.x, existingVote.y);
+                    players.now.removeVote(color, existingVote.x, existingVote.y);
                 }
-            });
+            }
+
+            if(addVote){
+                players.lastVoteTime = new Date();
+                players.now.addVote(color, x, y);
+                players.votes[username] = {x: x, y: y};
+            }
+
+            if(players.now.playerCount < 2){
+                players.finalize();
+            }
         });
     }
 };
@@ -350,6 +385,29 @@ setInterval(function(){
         if(timeLeft.black != null){
             timeLeft.black--;
         }
+    }
+
+    if(players.genMoveStarted){
+        var currentTime = new Date();
+        var elapsedSeconds = Math.floor((currentTime - players.genMoveStarted) / 1000);
+
+        var numberConfirmed = getNumberOfConfirmedVotes();
+
+        var overallTurnTime = players.secondsPerMove - elapsedSeconds;
+        var shortCircuit = overallTurnTime;
+
+        if(numberConfirmed >= players.now.playerCount){
+            //If all votes are confirmed, go ahead and move
+            shortCircuit = 0;
+        }
+
+        players.now.turnTimeRemaining = Math.min(overallTurnTime, shortCircuit);
+
+        if(players.now.turnTimeRemaining <= 0){
+            players.finalize();
+        }
+    } else {
+        players.now.turnTimeRemaining = null;
     }
 
     players.count(function(count){

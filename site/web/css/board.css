@@ -131,6 +131,9 @@
     line-height: 45px;
     cursor: default;
     font-weight:bold;
+
+    -moz-user-select: none;
+    -webkit-user-select: none;
 }
 
 .board .stone.white {
@@ -146,23 +149,23 @@
 }
 
 .board .stone.vote-1 {
-    opacity: .5
+    opacity: .25
 }
 
 .board .stone.vote-2 {
-    opacity: .55
+    opacity: .3
 }
 
 .board .stone.vote-3 {
-    opacity: .6;
+    opacity: .35;
 }
 
 .board .stone.vote-4 {
-    opacity: .7;
+    opacity: .4;
 }
 
 .board .stone.vote-5 {
-    opacity: .8;
+    opacity: .5;
 }
 
 .board .stone.preview-white {
@@ -173,6 +176,10 @@
 .board .stone.preview-black {
     opacity: .7;
     background-image: url("/image/black-stone.png");
+}
+
+.board .stone.confirmed {
+    opacity: 1;
 }
 
 .board-letter {
@@ -191,6 +198,14 @@
     font-size:smaller;
     text-align: right;
     width: 2em;
+}
+
+.not-game-in-progress .board-letter {
+    display: none;
+}
+
+.not-game-in-progress .board-number {
+    display: none;
 }
 
 .player-display .player-display-info {
