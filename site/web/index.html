@@ -38,6 +38,7 @@
                         [<span data-bind="text: players.black.rank()"></span>]
                     </span>
                     <span class="player-time" data-bind="text: players.black.formattedTimeLeft()"></span>
+                    <span data-bind="visible: players.black.moveTimeLeft() > 0">(Turn time: <span data-bind="text: players.black.moveTimeLeft()"></span>s)</span>
                 </h3>
                 <h4 data-bind="visible: players.black.captures() > 0">
                     Captures: <span data-bind="text: players.black.captures()"></span>
@@ -55,6 +56,7 @@
                         [<span data-bind="text: players.white.rank()"></span>]
                     </span>
                     <span class="player-time" data-bind="text: players.white.formattedTimeLeft()"></span>
+                    <span data-bind="visible: players.white.moveTimeLeft() > 0">(Turn time: <span data-bind="text: players.white.moveTimeLeft()"></span>s)</span>
                 </h3>
                 <h4 data-bind="visible: players.black.captures() > 0">
                     Captures: <span data-bind="text: players.white.captures()"></span>
@@ -95,20 +97,20 @@
                                             'vote-4': votes() === 4,
                                             'vote-5': votes() >= 5,
                                             confirmed: confirmed()
-                                        },
-                                        text: votes() > 0 ? votes() : ''
+                                        }
                                         "
                                 >
+                                    <div data-bind="css: { 'last-move': isLastMove() }, text: votes() > 0 ? votes() : ''"></div>
                                 </div>
                             </div>
                         </div>
                     </div></div>
                 </div>
-                <div class="row-fluid ">
-                    <div>
-                        <span data-bind="visible: remainingSeconds() > 0">
-                            Move timer: <span data-bind="text: remainingSeconds"></span> seconds
-                        </span>
+                <div class="row-fluid game-buttons" style="margin-top:.5em">
+                    <div class="span12" style="text-align:right">
+                        <button class="btn" data-bind="click:resignClick, enable: isMyTurn()">Resign<span class="badge" data-bind="text: votes.resign"></span></button>
+                        <button class="btn" data-bind="click:passClick, enable: isMyTurn()">Pass<span class="badge" data-bind="text: votes.pass"></span></button>
+                        <button class="btn" data-bind="click:moreTimeClick, enable: isMyTurn()">More time<span class="badge" data-bind="text: votes.moreTime"></span></button>
                     </div>
                 </div>
             </div>
@@ -177,24 +179,29 @@
             };
 
             now.ready(function(){
-                now.playMove = function(color, x, y){
-                    console.log(color + ',' + x + ',' + y);
+                now.playMove = function(color, x, y, special){
+                    console.log(color + ',' + x + ',' + y + ',' + special);
 
-                    tg.board.isMyTurn = false;
+                    tg.board.isMyTurn(false);
                     tg.board.events.removeAllListeners('intersectionClick');
 
-                    tg.board.playMove(color, x, y);
+                    if(special == null){
+                        tg.board.playMove(color, x, y);
+                    } else if(special === 'pass'){
+                        tg.board.setLastMove('pass');
+                    }
                 };
 
                 now.genMove = function(color, callback){
                     //Ignore additional genMove calls that might come when new players join
-                    if(tg.board.isMyTurn){
+                    if(tg.board.isMyTurn()){
                         return;
                     }
 
                     console.log('genmove '  + color);
 
-                    tg.board.isMyTurn = true;
+                    tg.board.isMyTurn(true);
+                    tg.board.moveCallback = callback;
 
                     //If the player got disconnected during his turn, the old event handler will still be around
                     tg.board.events.removeAllListeners('intersectionClick');
@@ -218,8 +225,8 @@
                     console.log(username);
                 };
 
-                now.addVote = function(color, x, y){
-                    tg.board.addVote(color, x, y);
+                now.addVote = function(color, x, y, special){
+                    tg.board.addVote(color, x, y, special);
                 };
 
                 now.confirmVote = function(x, y){
@@ -228,25 +235,44 @@
 
                 now.unconfirmVote = function(x, y){
                     tg.board.unconfirmVote(x, y);
-                }
+                };
 
-                now.removeVote = function(color, x, y){
-                    tg.board.removeVote(color, x, y);
+                now.removeVote = function(color, x, y, special){
+                    tg.board.removeVote(color, x, y, special);
+                };
+
+                now.clearMoreTimeVote = function(){
+                    tg.board.votes.moreTime(0);
                 };
 
                 setInterval(function(){
                     tg.board.gameInProgress(now.inGame);
                     if(now.opponentName != null){
                         tg.board.setOpponent(now.opponentName, now.opponentRank);
+                    } else {tg.board.setOpponent('No opponent');
+
                     }
 
                     tg.board.playerCount(now.playerCount);
 
-                    tg.board.remainingSeconds(now.turnTimeRemaining);
+                    tg.board.myColor = now.myColor;
+                    if(tg.board.myColor){
+                        tg.board.players[tg.board.myColor].moveTimeLeft(now.turnTimeRemaining);
+                    } else {
+                        tg.board.players.white.moveTimeLeft(0);
+                        tg.board.players.black.moveTimeLeft(0);
+                    }
+
+                    if(now.whoseTurn !== now.myColor){
+                        tg.board.removeAllVotes();
+                    }
 
                     if(now.timeLeft){
                         tg.board.players.white.timeLeft(now.timeLeft.white);
                         tg.board.players.black.timeLeft(now.timeLeft.black);
+                    } else {
+                        tg.board.players.white.timeLeft(0);
+                        tg.board.players.black.timeLeft(0);
                     }
                 }, 1000);
 
@@ -269,12 +295,12 @@
                     ko.applyBindings(tg.board, $('.game-status')[0]);
 
                     $('.board').on('hover', '.stone', function(event){
-                        var target = $(event.target);
+                        var target = $(event.target).closest('.stone');
                         if(event.type === 'mouseleave') {
                             target.removeClass('preview-' + tg.board.myColor);
                         }
 
-                        if(!tg.board.myColor || !tg.board.isMyTurn) {
+                        if(!tg.board.myColor || !tg.board.isMyTurn()) {
                             return;
                         }
 

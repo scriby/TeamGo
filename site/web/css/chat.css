@@ -3,7 +3,7 @@
 }
 
 .chat .chat-messages {
-    height:808px;
+    height:788px;
     overflow:auto;
     overflow-x:hidden;
 }
@@ -12,8 +12,12 @@
     font-weight: bold;
 }
 
+.chat .chat-message {
+    margin-top: .25em;
+}
+
 .chat .chat-entry {
-    margin-top: -20px;
+
 }
 
 .chat .chat-entry input[type="text"] {

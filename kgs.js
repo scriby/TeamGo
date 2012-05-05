@@ -5,7 +5,7 @@ var quotaExceeded = /quota exceeded/i;
 
 var requestRank = function(username, year, month, callback){
     var url = urlPattern.replace('*user*', username).replace('*year*', year).replace('*month*', month);
-    var rankRegex = new RegExp(username + '\\s?\\[(.*?)\\]', 'i');
+    var rankRegex = new RegExp(username + '\\s?\\[(.*?)\\]', 'ig');
 
     request.get(url, function(err, response, body){
         if(err != null){
@@ -20,9 +20,14 @@ var requestRank = function(username, year, month, callback){
             return callback('Account ' + username + ' does not exist.');
         }
 
-        var match = rankRegex.exec(body);
-        if(match){
-            callback(null, match[1]);
+        var lastMatch;
+        var match;
+        while(match = rankRegex.exec(body)){
+            lastMatch = match;
+        }
+
+        if(lastMatch){
+            callback(null, lastMatch[1]);
         } else {
             callback();
         }

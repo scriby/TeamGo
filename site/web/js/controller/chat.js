@@ -22,7 +22,7 @@ tg.chat = {};
             chat.messages.push({ from: from, rank: rank, text: text });
 
             var messages = $('.chat-messages');
-            messages.scrollTop(messages.height());
+            messages.scrollTop(messages.prop('scrollHeight'));
         };
     });
 })();

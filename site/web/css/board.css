@@ -148,6 +148,22 @@
     color: white;
 }
 
+.board .stone .last-move {
+    position:absolute;
+    width:45px;
+    height:45px;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+.board .stone.black .last-move {
+    background-image: url("/image/white-dot.png");
+}
+
+.board .stone.white .last-move {
+    background-image: url("/image/black-dot.png");
+}
+
 .board .stone.vote-1 {
     opacity: .25
 }

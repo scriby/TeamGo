@@ -22,6 +22,8 @@ var getSession = function(clientId){
 };
 
 var getOppositeColor = function(color){
+    color = color.toLowerCase();
+
     if(color === 'white'){
         return 'black';
     } else {
@@ -57,7 +59,7 @@ players.now.joinPlayers = function(){
 
     //Send the initial board state
     players._moves.forEach(function(move){
-        self.now.playMove(move.color, move.x, move.y);
+        self.now.playMove(move.color, move.x, move.y, move.special);
     });
 
     if(players._genmove){
@@ -145,13 +147,15 @@ var getMostVoted = function(){
     var votes = {};
     Object.keys(players.votes).forEach(function(key){
         var vote = players.votes[key];
-        var voteString = vote.x + ',' + vote.y;
+        if(vote.special == null){
+            var voteString = vote.x + ',' + vote.y;
 
-        if(votes[voteString] == null){
-            votes[voteString] = 0;
+            if(votes[voteString] == null){
+                votes[voteString] = 0;
+            }
+
+            votes[voteString]++;
         }
-
-        votes[voteString]++;
     });
 
     //At the end of those, mostVoted should contain the moves with the most number of votes (more than one if two moves had equal votes)
@@ -194,33 +198,103 @@ var getNumberOfConfirmedVotes = function(){
     return count;
 };
 
+//Grant more time if more than half the players requested
+var checkSpecialVote = function(type){
+    var votes = 0;
+    var totalVotes = 0;
+
+    Object.keys(players.votes).forEach(function(key){
+        totalVotes++;
+
+        if(players.votes[key].special === type){
+            votes++;
+        }
+    });
+
+    return votes / totalVotes;
+};
+
+var clearSpecialVote = function(type){
+    Object.keys(players.votes).forEach(function(key){
+        if(players.votes[key].special === type){
+            delete players.votes[key];
+        }
+    });
+};
+
+
 var finalizeMove = function(color, callback){
-    return function(){
+    return function(gameOver){
+        var restartVoting = function(){
+            if(players.now.receiveChat){
+                players.now.receiveChat('Game information', null, 'Extending move time.');
+
+            }
+
+            if(players.now.clearMoreTimeVote) {
+                players.now.clearMoreTimeVote();
+            }
+
+            clearSpecialVote('moreTime');
+
+            players.genMoveStarted = new Date();
+        };
+
+        var move = function(x, y, special){
+            players._genmove = null;
+            players._moves.push({color: color, x: x, y: y, special: special});
+            players.now.playMove(color, x, y, special);
+
+            //Reset votes dictionary
+            players.votes = Object.create(null);
+
+            players.genMoveStarted = null;
+            players.now.turnTimeRemaining = null;
+
+            players.now.whoseTurn = getOppositeColor(color);
+
+            players.finalize = null;
+
+            if(special == null){
+                callback(null, toVertex(x, y));
+            } else {
+                callback(null, special);
+            }
+        };
+
+        if(gameOver){
+            callback();
+        }
+
+        if(checkSpecialVote('moreTime') > 0.5){
+            return restartVoting();
+        }
+
+        if(checkSpecialVote('pass') > 0.6){
+            players.now.receiveChat('Game information', null, 'TeamGo passed');
+            return move(null, null, 'pass');
+        }
+
+        if(checkSpecialVote('resign') > 0.8){
+            players.now.receiveChat('Game information', null, 'TeamGo resigned');
+            players.now.inGame = false;
+            reset();
+            return move(null, null, 'resign');
+        }
+
         //Voting finished
         var mostVoted = getMostVoted();
 
         if(mostVoted.length === 0){
-            players.genMoveStarted = new Date();
-            return;
+            return restartVoting();
         }
 
         //Choose a move randomly
-        var move = mostVoted[Math.floor(Math.random() * mostVoted.length)];
-        var x = parseInt(move.point.substring(0, move.point.indexOf(',')));
-        var y = parseInt(move.point.substring(move.point.indexOf(',') + 1));
+        var chosenMove = mostVoted[Math.floor(Math.random() * mostVoted.length)];
+        var x = parseInt(chosenMove.point.substring(0, chosenMove.point.indexOf(',')));
+        var y = parseInt(chosenMove.point.substring(chosenMove.point.indexOf(',') + 1));
 
-        players._genmove = null;
-        players._moves.push({color: color, x: x, y: y});
-        players.now.playMove(color, x, y);
-
-        //Reset votes dictionary
-        players.votes = Object.create(null);
-
-        players.genMoveStarted = null;
-        players.now.turnTimeRemaining = null;
-
-        players.now.whoseTurn = getOppositeColor(color);
-        callback(null, toVertex(x, y));
+        move(x, y);
     }
 };
 
@@ -238,7 +312,7 @@ gts_gtp.gtp.commands.genmove = function(args, callback){
     }
 
     if(players.now.genMove){
-        players.now.genMove(color, function(err, x, y){
+        players.now.genMove(color, function(err, x, y, special){
             console.log('received move');
 
             var username = getSession(this.user.clientId).username;
@@ -246,10 +320,9 @@ gts_gtp.gtp.commands.genmove = function(args, callback){
             var addVote = true;
 
             if(existingVote != null){
-                if(existingVote.x === x && existingVote.y === y){
-                    if(!existingVote.confirmed){
+                if(existingVote.x === x && existingVote.y === y && existingVote.special === special){
+                    if(!existingVote.confirmed && special == null){
                         //If they vote for the same place twice, confirm the vote
-                        players.lastVoteTime = new Date();
                         existingVote.confirmed = true;
                         this.now.confirmVote(x, y);
                     }
@@ -257,18 +330,18 @@ gts_gtp.gtp.commands.genmove = function(args, callback){
                     addVote = false;
                 } else {
                     this.now.unconfirmVote(existingVote.x, existingVote.y);
-                    players.now.removeVote(color, existingVote.x, existingVote.y);
+                    players.now.removeVote(color, existingVote.x, existingVote.y, existingVote.special);
                 }
             }
 
             if(addVote){
-                players.lastVoteTime = new Date();
-                players.now.addVote(color, x, y);
-                players.votes[username] = {x: x, y: y};
-            }
+                players.now.addVote(color, x, y, special);
+                players.votes[username] = {x: x, y: y, special: special};
 
-            if(players.now.playerCount < 2){
-                players.finalize();
+                if(special === 'pass' || special === 'resign'){
+                    //Immediately confirm pass, resign, etc. votes
+                    players.votes[username].confirmed = true;
+                }
             }
         });
     }
@@ -281,18 +354,42 @@ gts_gtp.gtp.commands.play = function(args, callback){
     var match = playRegex.exec(args);
 
     var color = fromGtpColor(match[1]);
-    var coord = fromVertex(match[2]);
+    var coord = {};
+    var special;
+    if(match[2] === 'pass'){
+        special = 'pass';
+    } else {
+        coord = fromVertex(match[2]);
+    }
 
     if(players.now.playMove){
-        players.now.playMove(color, coord.x, coord.y);
+        players.now.playMove(color, coord.x, coord.y, special);
     }
-    players._moves.push({color: color, x: coord.x, y: coord.y });
+    players._moves.push({color: color, x: coord.x, y: coord.y, special: special });
+
+    callback();
+};
+
+gts_gtp.gtp.commands['tg-final-score'] = function(args, callback){
+    var color = fromGtpColor(args.winner);
+    color = color.substring(0, 1).toUpperCase() + color.substring(1);
+
+    if(args.resign){
+        players.now.receiveChat('Game information', null, color + ' won the game by resignation.');
+    } else {
+        players.now.receiveChat('Game information', null, color + ' won the game by ' + args.score + ' points.');
+    }
 
     callback();
 };
 
 gts_gtp.gtp.commands.quit = function(args, callback){
     players.now.inGame = false;
+    reset();
+
+    if(players.finalize){
+        players.finalize(true);
+    }
 
     callback();
 };
@@ -312,7 +409,6 @@ gts_gtp.gtp.commands['assign-color'] = function(args, callback){
 gts_gtp.gtp.commands['opponent-name'] = function(args, callback){
     players.now.opponentName = args;
     players.now.inGame = true;
-    players._moves = [];
 
     kgs.getUserRank(args, function(err, rank){
         players.now.opponentRank = rank;
@@ -375,6 +471,28 @@ gts_gtp.gtp.commands['kgs-chat'] = function(args, callback){
     callback(null, 'Join the online sensation at http://www.TeamGo.us');
 };
 
+var reset = function(){
+    clearBoard();
+    players._genmove = null;
+    players.now.myColor = null;
+    players.now.timeLeft = null;
+    players.now.opponentName = null;
+    players.now.opponentRank = null;
+};
+
+var clearBoard = function(){
+    players._moves = [];
+    if(players.now.clearBoard){
+        players.now.clearBoard();
+    }
+};
+
+gts_gtp.gtp.commands['clear_board'] = function(args, callback){
+    clearBoard();
+
+    callback();
+};
+
 setInterval(function(){
     var timeLeft = players.now.timeLeft;
     if(timeLeft != null && players.now.myColor === players.now.whoseTurn){
@@ -403,8 +521,10 @@ setInterval(function(){
 
         players.now.turnTimeRemaining = Math.min(overallTurnTime, shortCircuit);
 
-        if(players.now.turnTimeRemaining <= 0){
-            players.finalize();
+        if(players.now.whoseTurn === players.now.myColor && players.now.turnTimeRemaining <= 0){
+            if(players.finalize){
+                players.finalize();
+            }
         }
     } else {
         players.now.turnTimeRemaining = null;

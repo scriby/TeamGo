@@ -10,12 +10,14 @@ var tg = {};
                 captures: ko.observable(0),
                 name: ko.observable(),
                 timeLeft: ko.observable(),
+                moveTimeLeft: ko.observable(),
                 rank: ko.observable()
             },
             black: {
                 captures: ko.observable(0),
                 name: ko.observable(),
                 timeLeft: ko.observable(),
+                moveTimeLeft: ko.observable(),
                 rank: ko.observable()
             }
         };
@@ -45,14 +47,29 @@ var tg = {};
         this.gameInProgress = ko.observable(false);
         this.doneLoading = ko.observable(true);
         this.playerCount = ko.observable();
+        this.isMyTurn = ko.observable();
+
+        this.votes = {
+            pass: ko.observable(0),
+            resign: ko.observable(0),
+            moreTime: ko.observable(0)
+        };
 
         this.myColor = null;
 
         this.events = new EventEmitter();
 
-        this.secondsPerMove = 27;
-        this.byoYomiSeconds = 30;
-        this.remainingSeconds = ko.observable();
+        this.resignClick = function(){
+            this.moveCallback(null, null, null, 'resign');
+        };
+
+        this.passClick = function(){
+            this.moveCallback(null, null, null, 'pass');
+        };
+
+        this.moreTimeClick = function(){
+            this.moveCallback(null, null, null, 'moreTime');
+        };
 
         for(var i = 0; i < 19; i++){
             var row = [];
@@ -66,6 +83,7 @@ var tg = {};
                     votes: ko.observable(0),
                     confirmed: ko.observable(false),
                     preview: ko.observable(false),
+                    isLastMove: ko.observable(false),
                     click: function(intersection){
                         self.events.emit('intersectionClick', intersection);
                     }
@@ -110,11 +128,15 @@ var tg = {};
         this.players.black.captures(0);
     };
 
-    Board.prototype.addVote = function(color, x, y){
-        var item = this.rows[y][x];
-        item.preview(true);
-        item.status(color);
-        item.votes(item.votes() + 1);
+    Board.prototype.addVote = function(color, x, y, special){
+        if(special == null){
+            var item = this.rows[y][x];
+            item.preview(true);
+            item.status(color);
+            item.votes(item.votes() + 1);
+        } else {
+            this.votes[special](this.votes[special]() + 1);
+        }
     };
 
     Board.prototype.confirmVote = function(x, y){
@@ -127,13 +149,17 @@ var tg = {};
         item.confirmed(false);
     };
 
-    Board.prototype.removeVote = function(color, x, y){
-        var item = this.rows[y][x];
-        item.votes(item.votes() - 1);
+    Board.prototype.removeVote = function(color, x, y, special){
+        if(special == null){
+            var item = this.rows[y][x];
+            item.votes(item.votes() - 1);
 
-        if(item.votes() <= 0) {
-            item.status('empty');
-            item.preview(false);
+            if(item.votes() <= 0) {
+                item.status('empty');
+                item.preview(false);
+            }
+        } else {
+            this.votes[special](this.votes[special]() - 1);
         }
     };
 
@@ -150,11 +176,26 @@ var tg = {};
                 }
             }
         }
+
+        var self = this;
+        Object.keys(this.votes).forEach(function(key){
+            self.votes[key](0);
+        });
+    };
+
+    Board.prototype.setLastMove = function(x, y){
+        for(var i = 0; i < this.rows.length; i++){
+            var row = this.rows[i];
+            for(var j = 0; j < row.length; j++){
+                row[j].isLastMove(y === i && x === j);
+            }
+        }
     };
 
     Board.prototype._playMove = function(color, x, y){
         this.removeAllVotes();
         this.rows[y][x].status(color);
+        this.setLastMove(x, y);
 
         var groups = this.findSurroundingGroups(color, x, y);
 
