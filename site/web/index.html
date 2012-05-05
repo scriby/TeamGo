@@ -15,6 +15,10 @@
             <a class="brand" href="#">TeamGo [beta]</a>
             <div class="nav-collapse">
                 <div class="nav pull-right navbar-form">
+                    <a data-toggle="modal" href="#voting-rules-modal" class="btn btn-info">
+                        <i class="icon-info-sign" style="vertical-align: middle"></i>
+                        Voting rules
+                    </a>
                     <a data-toggle="modal" href="#kgs-link-modal" class="btn btn-primary">
                         <i class="icon-retweet" style="vertical-align: middle"></i>
                         Link KGS Account
@@ -29,7 +33,8 @@
     <div class="game-status row-fluid">
         <div class="span4 player-display">
             <h2>
-                Black
+                <span style="vertical-align: middle">Black</span>
+                <i class="icon-arrow-left" style="vertical-align:middle;" data-bind="visible: whoseTurn() === 'black'"></i>
             </h2>
             <div class="player-display-info">
                 <h3>
@@ -47,7 +52,8 @@
         </div>
         <div class="span4 player-display">
             <h2>
-                White
+                <span style="vertical-align: middle">White</span>
+                <i class="icon-arrow-left" style="vertical-align:middle;" data-bind="visible: whoseTurn() === 'white'"></i>
             </h2>
             <div class="player-display-info">
                 <h3>
@@ -65,7 +71,7 @@
         </div>
         <div class="span4">
             <h3>
-                TeamGo players: <span data-bind="text: playerCount"></span>
+                TeamGo players: <span data-bind="text: activePlayerCount"></span> (<span data-bind="text: playerCount() - activePlayerCount()"></span> inactive)
             </h3>
         </div>
     </div>
@@ -107,7 +113,18 @@
                     </div></div>
                 </div>
                 <div class="row-fluid game-buttons" style="margin-top:.5em">
-                    <div class="span12" style="text-align:right">
+                    <div class="span7">
+                        <div class="alert alert-info">
+                            <a class="close" data-dismiss="alert" href="#">×</a>
+                            <div>
+                                Click once to vote on a move, twice to confirm your vote.
+                            </div>
+                            <div>
+                                Confirming your vote makes the game go faster.
+                            </div>
+                        </div>
+                    </div>
+                    <div class="span5" style="text-align:right">
                         <button class="btn" data-bind="click:resignClick, enable: isMyTurn()">Resign<span class="badge" data-bind="text: votes.resign"></span></button>
                         <button class="btn" data-bind="click:passClick, enable: isMyTurn()">Pass<span class="badge" data-bind="text: votes.pass"></span></button>
                         <button class="btn" data-bind="click:moreTimeClick, enable: isMyTurn()">More time<span class="badge" data-bind="text: votes.moreTime"></span></button>
@@ -171,7 +188,7 @@
                 var possible = 'abcdefghijklmnopqrstuvwxyz0123456789';
                 var sessionId = '';
 
-                for(var i = 0; i < 16; i++){
+                for(var i = 0; i < 10; i++){
                     sessionId += possible[Math.floor(Math.random() * possible.length)];
                 }
 
@@ -214,7 +231,7 @@
                 };
 
                 now.setColor = function(color){
-                    tg.board.myColor = color;
+                    tg.board.myColor(color);
                 };
 
                 now.clearBoard = function(){
@@ -254,10 +271,11 @@
                     }
 
                     tg.board.playerCount(now.playerCount);
+                    tg.board.activePlayerCount(now.activePlayerCount);
 
-                    tg.board.myColor = now.myColor;
-                    if(tg.board.myColor){
-                        tg.board.players[tg.board.myColor].moveTimeLeft(now.turnTimeRemaining);
+                    tg.board.myColor(now.myColor);
+                    if(tg.board.myColor()){
+                        tg.board.players[tg.board.myColor()].moveTimeLeft(now.turnTimeRemaining);
                     } else {
                         tg.board.players.white.moveTimeLeft(0);
                         tg.board.players.black.moveTimeLeft(0);
@@ -266,6 +284,8 @@
                     if(now.whoseTurn !== now.myColor){
                         tg.board.removeAllVotes();
                     }
+
+                    tg.board.whoseTurn(now.whoseTurn);
 
                     if(now.timeLeft){
                         tg.board.players.white.timeLeft(now.timeLeft.white);
@@ -297,10 +317,10 @@
                     $('.board').on('hover', '.stone', function(event){
                         var target = $(event.target).closest('.stone');
                         if(event.type === 'mouseleave') {
-                            target.removeClass('preview-' + tg.board.myColor);
+                            target.removeClass('preview-' + tg.board.myColor());
                         }
 
-                        if(!tg.board.myColor || !tg.board.isMyTurn()) {
+                        if(!tg.board.myColor() || !tg.board.isMyTurn()) {
                             return;
                         }
 
@@ -310,8 +330,8 @@
                         var y = parseInt(intersection.attr('data-y'));
 
                         if(event.type === 'mouseenter') {
-                            if(tg.board.checkMove(tg.board.myColor, x, y)){
-                                target.addClass('preview-' + tg.board.myColor);
+                            if(tg.board.checkMove(tg.board.myColor(), x, y)){
+                                target.addClass('preview-' + tg.board.myColor());
                             }
                         }
                     });
@@ -371,6 +391,50 @@
         <h3 style="margin-top: 1em;margin-left:1em" >
             link <span data-bind="text: message"></span>
         </h3>
+    </div>
+    <div class="modal-footer">
+        <a href="#" class="btn btn-primary" data-dismiss="modal">Close</a>
+    </div>
+</div>
+
+<div class="modal" style="display:none" id="voting-rules-modal">
+    <div class="modal-header">
+        <button class="close" data-dismiss="modal">×</button>
+        <h3>Voting Rules</h3>
+    </div>
+    <div class="modal-body">
+        <div style="margin-top: 1em;margin-left:1em">
+            <ul>
+                <li>
+                    Generally, TeamGo plays a move when the turn time runs out. If any intersections have been voted on, the one with the most votes will be played.
+                </li>
+                <li>
+                    Players may confirm board moves by clicking on an intersection twice. If all active players confirm their moves, TeamGo will play immediately, making the game go faster.
+                </li>
+                <li>
+                    If the top two intersections receive an equal number of votes, one will be chosen at random.
+                </li>
+                <li>
+                    If no votes have been received when the turn time runs out, more time is given.
+                </li>
+            </ul>
+        </div>
+        <div style="margin-top: 1em;margin-left:1em">
+            <ul>
+                <li>
+                    Players can also vote on Pass, Resign, and More time.
+                </li>
+                <li>
+                    If more than 50% of votes received are for "More time", then more time will be given, and a move will not be played at the end of the countdown timer.
+                </li>
+                <li>
+                    If more than 60% of votes received are for "Pass", then TeamGo will pass.
+                </li>
+                <li>
+                    If more than 80% of votes received are for "Resign", then TeamGo will resign.
+                </li>
+            </ul>
+        </div>
     </div>
     <div class="modal-footer">
         <a href="#" class="btn btn-primary" data-dismiss="modal">Close</a>

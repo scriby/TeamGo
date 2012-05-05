@@ -27,7 +27,7 @@ var getOppositeColor = function(color){
     if(color === 'white'){
         return 'black';
     } else {
-        return 'white;'
+        return 'white';
     }
 };
 
@@ -72,6 +72,10 @@ players.now.joinPlayers = function(){
 };
 
 players.now.sendChat = function(text){
+    if(text.length > 200){
+        text = text.substring(0, 200);
+    }
+
     if(players.now.receiveChat){
         var session = getSession(this.user.clientId);
         players.now.receiveChat(session.username, session.rank, text);
@@ -227,7 +231,7 @@ var finalizeMove = function(color, callback){
     return function(gameOver){
         var restartVoting = function(){
             if(players.now.receiveChat){
-                players.now.receiveChat('Game information', null, 'Extending move time.');
+                players.now.receiveChat('Game info', null, 'Extending move time.');
 
             }
 
@@ -271,12 +275,12 @@ var finalizeMove = function(color, callback){
         }
 
         if(checkSpecialVote('pass') > 0.6){
-            players.now.receiveChat('Game information', null, 'TeamGo passed');
+            players.now.receiveChat('Game info', null, 'TeamGo passed');
             return move(null, null, 'pass');
         }
 
         if(checkSpecialVote('resign') > 0.8){
-            players.now.receiveChat('Game information', null, 'TeamGo resigned');
+            players.now.receiveChat('Game info', null, 'TeamGo resigned');
             players.now.inGame = false;
             reset();
             return move(null, null, 'resign');
@@ -314,8 +318,10 @@ gts_gtp.gtp.commands.genmove = function(args, callback){
     if(players.now.genMove){
         players.now.genMove(color, function(err, x, y, special){
             console.log('received move');
+            var session = getSession(this.user.clientId);
+            var username = session.username;
 
-            var username = getSession(this.user.clientId).username;
+            session.lastVoteTime = new Date();
             var existingVote = players.votes[username];
             var addVote = true;
 
@@ -375,9 +381,9 @@ gts_gtp.gtp.commands['tg-final-score'] = function(args, callback){
     color = color.substring(0, 1).toUpperCase() + color.substring(1);
 
     if(args.resign){
-        players.now.receiveChat('Game information', null, color + ' won the game by resignation.');
+        players.now.receiveChat('Game info', null, color + ' won the game by resignation.');
     } else {
-        players.now.receiveChat('Game information', null, color + ' won the game by ' + args.score + ' points.');
+        players.now.receiveChat('Game info', null, color + ' won the game by ' + args.score + ' points.');
     }
 
     callback();
@@ -409,6 +415,8 @@ gts_gtp.gtp.commands['assign-color'] = function(args, callback){
 gts_gtp.gtp.commands['opponent-name'] = function(args, callback){
     players.now.opponentName = args;
     players.now.inGame = true;
+    //Starting a new game, so start everyone out as active
+    touchLastVoteTime();
 
     kgs.getUserRank(args, function(err, rank){
         players.now.opponentRank = rank;
@@ -493,6 +501,32 @@ gts_gtp.gtp.commands['clear_board'] = function(args, callback){
     callback();
 };
 
+var getActivePlayerCount = function(){
+    var currentTime = new Date();
+    var count = 0;
+
+    players.getUsers(function(users){
+        for(var i = 0; i < users.length; i++){
+            var session = getSession(users[i]);
+
+            if(session.lastVoteTime && currentTime - session.lastVoteTime < 3 * 60 * 1000){
+                count++;
+            }
+        }
+    });
+
+    return count;
+};
+
+var touchLastVoteTime = function(){
+    players.getUsers(function(users){
+        for(var i = 0; i < users.length; i++){
+            var session = getSession(users[i]);
+            session.lastVoteTime = new Date();
+        }
+    });
+};
+
 setInterval(function(){
     var timeLeft = players.now.timeLeft;
     if(timeLeft != null && players.now.myColor === players.now.whoseTurn){
@@ -505,6 +539,8 @@ setInterval(function(){
         }
     }
 
+    players.now.activePlayerCount = getActivePlayerCount();
+
     if(players.genMoveStarted){
         var currentTime = new Date();
         var elapsedSeconds = Math.floor((currentTime - players.genMoveStarted) / 1000);
@@ -514,7 +550,7 @@ setInterval(function(){
         var overallTurnTime = players.secondsPerMove - elapsedSeconds;
         var shortCircuit = overallTurnTime;
 
-        if(numberConfirmed >= players.now.playerCount){
+        if(numberConfirmed >= players.now.activePlayerCount && players.now.activePlayerCount > 0){
             //If all votes are confirmed, go ahead and move
             shortCircuit = 0;
         }

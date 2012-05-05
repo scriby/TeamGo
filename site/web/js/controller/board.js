@@ -47,7 +47,9 @@ var tg = {};
         this.gameInProgress = ko.observable(false);
         this.doneLoading = ko.observable(true);
         this.playerCount = ko.observable();
+        this.activePlayerCount = ko.observable();
         this.isMyTurn = ko.observable();
+        this.whoseTurn = ko.observable();
 
         this.votes = {
             pass: ko.observable(0),
@@ -55,7 +57,7 @@ var tg = {};
             moreTime: ko.observable(0)
         };
 
-        this.myColor = null;
+        this.myColor = ko.observable();
 
         this.events = new EventEmitter();
 
@@ -93,7 +95,7 @@ var tg = {};
     };
 
     Board.prototype.setOpponent = function(name, rank){
-        if(this.myColor === 'white'){
+        if(this.myColor() === 'white'){
             this.players.black.name(name);
             this.players.black.rank(rank);
 
