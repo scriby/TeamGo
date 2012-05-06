@@ -1,0 +1,7 @@
+{
+    "name": "TeamGo",
+    "dependencies": {
+        "express": "2.5.9",
+        "now": "0.8.1"
+    }
+}
