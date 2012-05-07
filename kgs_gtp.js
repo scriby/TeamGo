@@ -2,8 +2,10 @@ var child_process = require('child_process');
 var path = require('path');
 var gtp = require('./gtp.js')('TeamGo.us', '0.1');
 
+var proc;
+
 exports.start = function(){
-    var proc = child_process.spawn(
+    proc = child_process.spawn(
         'java',
 
         ['-jar', 'kgsGtp.jar', 'config.txt'],
@@ -47,6 +49,21 @@ exports.start = function(){
     });
 
     return proc;
+};
+
+exports.stop = function(){
+    if(proc){
+        proc.removeAllListeners('exit');
+        proc.kill('SIGINT');
+
+        setTimeout(function(){
+            proc = null;
+        }, 1000);
+    }
+};
+
+exports.isStarted = function(){
+    return proc != null;
 };
 
 exports.gtp = gtp;

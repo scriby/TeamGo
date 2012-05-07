@@ -4,6 +4,7 @@
     "dependencies": {
         "express": "2.5.9",
         "now": "0.8.1",
-        "request": "2.9.202"
+        "request": "2.9.202",
+        "async": "0.1.18"
     }
 }

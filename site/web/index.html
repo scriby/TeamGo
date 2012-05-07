@@ -9,12 +9,20 @@
 </head>
 
 <body>
+<h1 class="loading" style="text-align:center">
+    Loading...
+</h1>
+<div class="body-container" style="display:none">
 <div class="navbar">
     <div class="navbar-inner">
         <div class="container">
             <a class="brand" href="#">TeamGo [beta]</a>
             <div class="nav-collapse">
                 <div class="nav pull-right navbar-form">
+                    <a data-toggle="modal" href="#faq-modal" class="btn btn-info">
+                        <i class="icon-info-sign" style="vertical-align: middle"></i>
+                        FAQ
+                    </a>
                     <a data-toggle="modal" href="#voting-rules-modal" class="btn btn-info">
                         <i class="icon-info-sign" style="vertical-align: middle"></i>
                         Voting rules
@@ -78,9 +86,18 @@
     <div class="row-fluid" style="margin-top:30px">
         <div class="span8">
             <div class="game" data-bind="visible: doneLoading, css: { 'game-in-progress': gameInProgress(), 'not-game-in-progress': !gameInProgress() }" style="display:none">
-                <h3 data-bind="visible: !gameInProgress()">
-                    TeamGo is not currently playing a game.
-                </h3>
+                <div data-bind="visible: !gameInProgress()" class="well">
+                    <h3 data-bind="visible: !lookingForGame()">
+                        TeamGo is not currently playing a game.<br />
+                        When two or more players are ready, TeamGo will look for a game on KGS.
+                    </h3>
+                    <div data-bind="visible: !lookingForGame()" style="text-align: center;margin-top:1em">
+                        <button data-bind="click: markReady, disable: isReady" class="btn btn-primary btn-large" style="font-size:20px">I'm Ready</button>
+                    </div>
+                    <h3 data-bind="visible: lookingForGame()">
+                        TeamGo is currently looking for a game.
+                    </h3>
+                </div>
                 <!-- spacing between tags is important in the next block to prevent spaces between squares -->
                 <div class="board" data-bind="visible: gameInProgress, foreach: rows"><div data-bind="foreach: $data"><div
                     class="intersection"
@@ -263,7 +280,15 @@
                 };
 
                 setInterval(function(){
+                    if(now.inGame){
+                        tg.board.clearReady();
+                    }
+
+                    tg.board.isReady(now.isReady);
+
                     tg.board.gameInProgress(now.inGame);
+                    tg.board.lookingForGame(now.lookingForGame);
+
                     if(now.opponentName != null){
                         tg.board.setOpponent(now.opponentName, now.opponentRank);
                     } else {tg.board.setOpponent('No opponent');
@@ -320,14 +345,18 @@
                             target.removeClass('preview-' + tg.board.myColor());
                         }
 
-                        if(!tg.board.myColor() || !tg.board.isMyTurn()) {
-                            return;
-                        }
-
                         var intersection = target.closest('[data-x]');
 
                         var x = parseInt(intersection.attr('data-x'));
                         var y = parseInt(intersection.attr('data-y'));
+
+                        $('.board-marker').removeClass('highlight');
+                        $('.board-letter.x-' + x).addClass('highlight');
+                        $('.board-number.y-' + (y + 1)).addClass('highlight');
+
+                        if(!tg.board.myColor() || !tg.board.isMyTurn()) {
+                            return;
+                        }
 
                         if(event.type === 'mouseenter') {
                             if(tg.board.checkMove(tg.board.myColor(), x, y)){
@@ -338,6 +367,9 @@
 
                     var chatRoot = $('.chat')[0];
                     ko.applyBindings(tg.chat, chatRoot);
+
+                    $('.body-container').css('display', '');
+                    $('.loading').css('display', 'none');
 
                     initialized = true;
                 }
@@ -354,6 +386,8 @@
 
                     var boardLetter = $('<div />')
                             .addClass('board-letter')
+                            .addClass('board-marker')
+                            .addClass('x-' + i)
                             .css('left', left)
                             .text(letter);
 
@@ -366,6 +400,8 @@
                 for(var j = 1; j <= 19; j++){
                     var boardNumber = $('<div />')
                             .addClass('board-number')
+                            .addClass('board-marker')
+                            .addClass('y-' + j)
                             .css('top', top)
                             .text(j);
 
@@ -441,5 +477,44 @@
     </div>
 </div>
 
+<div class="modal" style="display:none" id="faq-modal">
+    <div class="modal-header">
+        <button class="close" data-dismiss="modal">×</button>
+        <h3>FAQ</h3>
+    </div>
+    <div class="modal-body">
+        <h3>
+            How does this work?
+        </h3>
+        <div style="margin-left:1em">
+            TeamGo is connected to the KGS go server where it plays under the TeamGo account. When two or more players
+            are ready to play on the website, it will create a custom game such that KGS players can challenge it.
+        </div>
+        <div style="margin-left:1em;margin-top:1em">
+            Players on this website fully control the moves the TeamGo player makes on KGS through voting. In general, the intersection
+            with the most votes will be played. More complete voting rules may be found by clicking on the Voting Rules button.
+        </div>
+
+        <h3>
+            What does linking my account do?
+        </h3>
+        <div style="margin-left:1em">
+            Linking your account will make your KGS name and rank appear in chat when you send a message. It doesn't
+            affect the voting directly (for now), but you may be able to influence others through chat.
+        </div>
+
+        <h3>
+            How can I contribute?
+        </h3>
+        <div style="margin-left:1em">
+            You may contribute code or bug reports to <a href="https://github.com/scriby/TeamGo" target="_blank">TeamGo on Github</a>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <a href="#" class="btn btn-primary" data-dismiss="modal">Close</a>
+    </div>
+</div>
+
+</div>
 </body>
 </html>

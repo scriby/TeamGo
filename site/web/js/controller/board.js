@@ -45,6 +45,9 @@ var tg = {};
         });
 
         this.gameInProgress = ko.observable(false);
+        this.lookingForGame = ko.observable(false);
+        this.isReady = ko.observable(false);
+
         this.doneLoading = ko.observable(true);
         this.playerCount = ko.observable();
         this.activePlayerCount = ko.observable();
@@ -71,6 +74,14 @@ var tg = {};
 
         this.moreTimeClick = function(){
             this.moveCallback(null, null, null, 'moreTime');
+        };
+
+        this.markReady = function(){
+            now.isReady = true;
+        };
+
+        this.clearReady = function(){
+            now.isReady = false;
         };
 
         for(var i = 0; i < 19; i++){

@@ -1,5 +1,6 @@
 var express = require('express');
 var nowjs = require("now");
+var async = require('async');
 var gts_gtp = require('../kgs_gtp.js');
 var kgs = require('../kgs.js');
 
@@ -51,6 +52,7 @@ everyone.now.login = function(sessionId, callback) {
 };
 
 players.now.inGame = false;
+players.now.lookingForGame = false;
 
 players.now.joinPlayers = function(){
     var self = this;
@@ -80,6 +82,30 @@ players.now.sendChat = function(text){
         var session = getSession(this.user.clientId);
         players.now.receiveChat(session.username, session.rank, text);
     }
+};
+
+var getReadyCount = function(callback){
+    var count = 0;
+
+    players.getUsers(function(users){
+        async.forEach(
+            users,
+
+            function(clientId, callback){
+                nowjs.getClient(clientId, function(){
+                    if(this.now.isReady){
+                        count++;
+                    }
+
+                    callback();
+                });
+            },
+
+            function(){
+                callback(null, count);
+            }
+        );
+    });
 };
 
 var vertexMapping = {
@@ -528,6 +554,31 @@ var touchLastVoteTime = function(){
 };
 
 setInterval(function(){
+    if(players.now.inGame){
+        players.now.lookingForGame = false;
+    }
+
+    if(players.now.lookingForGame){
+        getReadyCount(function(err, count){
+            if(count < 2){
+                gts_gtp.stop();
+                players.now.lookingForGame = false;
+            }
+        });
+    }
+
+    if(!players.now.inGame && !players.now.lookingForGame){
+        getReadyCount(function(err, count){
+            if(count >= 2){
+                gts_gtp.start();
+                players.now.lookingForGame = true;
+            } else {
+                gts_gtp.stop();
+                players.now.lookingForGame = false;
+            }
+        });
+    }
+
     var timeLeft = players.now.timeLeft;
     if(timeLeft != null && players.now.myColor === players.now.whoseTurn){
         if(timeLeft.white != null){
@@ -571,5 +622,3 @@ setInterval(function(){
     });
 
 }, 1000);
-
-gts_gtp.start();

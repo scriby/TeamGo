@@ -198,6 +198,10 @@
     opacity: 1;
 }
 
+.board-marker.highlight {
+    border-bottom: 3px solid black;
+}
+
 .board-letter {
     position:absolute;
     top: -15px;
