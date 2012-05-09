@@ -611,7 +611,7 @@ setInterval(function(){
 
     if(players.now.lookingForGame){
         getReadyCount(function(err, count){
-            if(count < 2){
+            if(count < 2 && !gts_gtp.isIdle()){
                 gts_gtp.stop();
                 players.now.lookingForGame = false;
             }
@@ -623,7 +623,7 @@ setInterval(function(){
             if(count >= 2){
                 gts_gtp.start({ idle: false });
                 players.now.lookingForGame = true;
-            } else {
+            } else if(!gts_gtp.isIdle()) {
                 gts_gtp.stop();
                 players.now.lookingForGame = false;
             }

@@ -6,6 +6,14 @@ var proc;
 var startOptions;
 
 exports.start = function(options){
+    console.log((new Error()).stack);
+
+    if(proc != null){
+        //already running
+        proc.removeAllListeners('exit');
+        exports.stop();
+    }
+
     if(options == null){
         options = {};
     }
@@ -65,6 +73,8 @@ exports.start = function(options){
 
         console.log('Restarting...');
 
+        proc = null;
+
         setTimeout(function(){
             proc = exports.start({ idle: true });
         }, 3000);
@@ -75,7 +85,8 @@ exports.start = function(options){
 };
 
 exports.stop = function(){
-    if(proc && !exports.isIdle()){
+    if(proc){
+        console.log((new Error()).stack);
         //proc.removeAllListeners('exit');
         proc.kill('SIGINT');
 

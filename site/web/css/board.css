@@ -8,7 +8,7 @@
     line-height:0px;
     background-image: url("/image/wood.jpg"); /* http://zooboingreview.blogspot.com/ */
     display:inline-block;
-    min-width:855px;
+    min-width:711px;
 }
 
 .board .intersection {
@@ -18,117 +18,126 @@
     background-image: url("/image/black-vertical.png");
     background-position: center;
     background-repeat: no-repeat;
-    width:45px;
-    height:45px;
+    width:39px;
+    height:39px;
 }
 
 .board .intersection-inner {
     position:absolute;
-    width:45px;
-    height:45px;
+    width:39px;
+    height:39px;
     background-position: center;
     background-image: url("/image/black-horizontal.png");
     background-repeat: no-repeat;
 }
 
 .board .intersection[data-y="0"] {
-    background-position: center 22px;
+    background-position: center 19px;
 }
 
 .board .intersection[data-y="18"] {
-    background-position: center -78px;
+    background-position: center -81px;
 }
 
 .board .intersection[data-x="0"] .intersection-inner {
-    background-position: 22px center;
+    background-position: 19px center;
 }
 
 .board .intersection[data-x="18"] .intersection-inner {
-    background-position: -78px center;
+    background-position: -81px center;
 }
 
 .board .intersection[data-x="3"][data-y="3"] .hoshi {
     background-image: url("/image/black-dot.png");
     background-repeat: no-repeat;
     background-position: center;
-    width:45px;
-    height:45px;
+    width:39px;
+    height:39px;
 }
 
 .board .intersection[data-x="9"][data-y="3"] .hoshi {
     background-image: url("/image/black-dot.png");
     background-repeat: no-repeat;
     background-position: center;
-    width:45px;
-    height:45px;
+    width:39px;
+    height:39px;
 }
 
 .board .intersection[data-x="15"][data-y="3"] .hoshi {
     background-image: url("/image/black-dot.png");
     background-repeat: no-repeat;
     background-position: center;
-    width:45px;
-    height:45px;
+    width:39px;
+    height:39px;
 }
 
 .board .intersection[data-x="3"][data-y="9"] .hoshi {
     background-image: url("/image/black-dot.png");
     background-repeat: no-repeat;
     background-position: center;
-    width:45px;
-    height:45px;
+    width:39px;
+    height:39px;
 }
 
 .board .intersection[data-x="9"][data-y="9"] .hoshi {
     background-image: url("/image/black-dot.png");
     background-repeat: no-repeat;
     background-position: center;
-    width:45px;
-    height:45px;
+    width:39px;
+    height:39px;
 }
 
 .board .intersection[data-x="15"][data-y="9"] .hoshi {
     background-image: url("/image/black-dot.png");
     background-repeat: no-repeat;
     background-position: center;
-    width:45px;
-    height:45px;
+    width:39px;
+    height:39px;
 }
 
 .board .intersection[data-x="3"][data-y="15"] .hoshi {
     background-image: url("/image/black-dot.png");
     background-repeat: no-repeat;
     background-position: center;
-    width:45px;
-    height:45px;
+    width:39px;
+    height:39px;
 }
 
 .board .intersection[data-x="9"][data-y="15"] .hoshi {
     background-image: url("/image/black-dot.png");
     background-repeat: no-repeat;
     background-position: center;
-    width:45px;
-    height:45px;
+    width:39px;
+    height:39px;
 }
 
 .board .intersection[data-x="15"][data-y="15"] .hoshi {
     background-image: url("/image/black-dot.png");
     background-repeat: no-repeat;
     background-position: center;
-    width:45px;
-    height:45px;
+    width:39px;
+    height:39px;
+}
+
+.board .stone-shadow {
+    background-image: url("/image/shadow.png");
+    position:absolute;
+    width:39px;
+    height:39px;
+    left:3px;
+    top:3px;
 }
 
 .board .stone {
     position:absolute;
-    width:45px;
-    height:45px;
+    width:39px;
+    height:39px;
     background-position: center;
     background-repeat: no-repeat;
 
     text-align: center;
     font-size: 26px;
-    line-height: 45px;
+    line-height: 39px;
     cursor: default;
     font-weight:bold;
 
@@ -150,8 +159,8 @@
 
 .board .stone .last-move {
     position:absolute;
-    width:45px;
-    height:45px;
+    width:39px;
+    height:39px;
     background-position: center;
     background-repeat: no-repeat;
 }

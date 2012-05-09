@@ -6,6 +6,9 @@
     <link href="/css/teamgo.css" rel="stylesheet">
     <link href="/css/board.css" rel="stylesheet">
     <link href="/css/chat.css" rel="stylesheet">
+    <title>
+        TeamGo
+    </title>
 </head>
 
 <body>
@@ -109,6 +112,7 @@
                         }">
                         <div class="intersection-inner">
                             <div class="hoshi">
+                                <div class="stone-shadow" data-bind="visible: status() !== 'empty'"></div>
                                 <div class="stone $data.status()"
                                      data-bind="
                                         css: {
@@ -130,18 +134,7 @@
                     </div></div>
                 </div>
                 <div class="row-fluid game-buttons" style="margin-top:.5em">
-                    <div class="span7">
-                        <div class="alert alert-info">
-                            <a class="close" data-dismiss="alert" href="#">×</a>
-                            <div>
-                                Click once to vote on a move, twice to confirm your vote.
-                            </div>
-                            <div>
-                                Confirming your vote makes the game go faster.
-                            </div>
-                        </div>
-                    </div>
-                    <div class="span5" style="text-align:right">
+                    <div class="span12" style="text-align:right;padding-right:105px">
                         <button class="btn" data-bind="click:resignClick, enable: isMyTurn()">Resign<span class="badge" data-bind="text: votes.resign"></span></button>
                         <button class="btn" data-bind="click:passClick, enable: isMyTurn()">Pass<span class="badge" data-bind="text: votes.pass"></span></button>
                         <button class="btn" data-bind="click:moreTimeClick, enable: isMyTurn()">More time<span class="badge" data-bind="text: votes.moreTime"></span></button>
@@ -241,7 +234,7 @@
                     tg.board.events.removeAllListeners('intersectionClick');
                     tg.board.events.on('intersectionClick', function(intersection){
                         if(tg.board.checkMove(color, intersection.x, intersection.y)) {
-                            console.log('returning move');
+                            console.log(intersection);
                             callback(null, intersection.x, intersection.y);
                         }
                     });
@@ -391,7 +384,7 @@
                             .css('left', left)
                             .text(letter);
 
-                    left += 45;
+                    left += 39;
 
                     game.append(boardLetter);
                 }
@@ -405,7 +398,7 @@
                             .css('top', top)
                             .text(j);
 
-                    top += 45;
+                    top += 39;
 
                     game.append(boardNumber);
                 }
