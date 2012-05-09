@@ -3,12 +3,35 @@ var path = require('path');
 var gtp = require('./gtp.js')('TeamGo.us', '0.1');
 
 var proc;
+var startOptions;
 
-exports.start = function(){
+exports.start = function(options){
+    if(options == null){
+        options = {};
+    }
+
+    startOptions = options;
+
+    var startArgs = ['-jar', 'kgsGtp.jar', 'config.txt'];
+
+    if(options.opponent){
+        startArgs.push('opponent=' + options.opponent);
+    }
+
+    if(options.idle){
+        startArgs.push('mode=wait');
+        if(!options.opponent){
+            startArgs.push('opponent=zzzzzzzz');
+        }
+    } else {
+        startArgs.push('mode=custom');
+        startArgs.push('gameNotes=I relay moves voted on by players at www.TeamGo.us' );
+    }
+
     proc = child_process.spawn(
         'java',
 
-        ['-jar', 'kgsGtp.jar', 'config.txt'],
+        startArgs,
 
         { cwd: path.join(__dirname, './client') }
     );
@@ -43,8 +66,8 @@ exports.start = function(){
         console.log('Restarting...');
 
         setTimeout(function(){
-            proc = exports.start();
-        }, 1000);
+            proc = exports.start({ idle: true });
+        }, 3000);
 
     });
 
@@ -52,14 +75,18 @@ exports.start = function(){
 };
 
 exports.stop = function(){
-    if(proc){
-        proc.removeAllListeners('exit');
+    if(proc && !exports.isIdle()){
+        //proc.removeAllListeners('exit');
         proc.kill('SIGINT');
 
-        setTimeout(function(){
-            proc = null;
-        }, 1000);
+        /*setTimeout(function(){
+            exports.start({ idle: true }); //start the client in "wait" mode
+        }, 3000);*/
     }
+};
+
+exports.isIdle = function(){
+    return !!startOptions.idle;
 };
 
 exports.isStarted = function(){

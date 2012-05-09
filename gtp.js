@@ -20,14 +20,6 @@ var GTP = function(clientName, clientVersion) {
         callback(null, clientVersion);
     };
 
-    commands.boardsize = function(args, callback){
-        if(args != 19){
-            callback('unacceptable size');
-        } else {
-            callback();
-        }
-    };
-
     commands.komi = function(args, callback){
         callback();
     };
@@ -94,6 +86,7 @@ var GTP = function(clientName, clientVersion) {
     var colorPlayerRegex = /Starting game as ([^\s]+) against ([^\s]+)/i;
     var finalScore = /final result = ([B|W])\+([^\)]+)/i;
     var leavingGame = /leaving game/i;
+    var gotChallenge = /Got challenge from "([^"]+)"/i;
     //KGS logs status info to stderr. We can parse it to get more information
     this.receiveError = function(text){
         //Parse KGS message to figure out which color we are
@@ -113,6 +106,11 @@ var GTP = function(clientName, clientVersion) {
         match = leavingGame.exec(text);
         if(match){
             handle('quit', null, function(){});
+        }
+
+        match = gotChallenge.exec(text);
+        if(match){
+            handle('tg-got-challenge', { opponent: match[1] }, function(){});
         }
     };
 };

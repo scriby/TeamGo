@@ -150,6 +150,23 @@ var vertexMapping = {
     18: 't'
 };
 
+var rankMapping = (function(){
+    var ranks = {};
+    var i;
+
+    for(i = 1; i <= 30; i++){
+        ranks[i + 'k'] = i;
+    }
+
+    for(i = 1; i <= 9; i++){
+        ranks[i + 'd'] = i + 30;
+    }
+
+    for(i = 1; i <= 9; i++){
+        ranks[i + 'p'] = i + 39;
+    }
+})();
+
 var fromVertex = function(vertex){
     var firstChar = vertex[0].toLowerCase();
 
@@ -502,7 +519,7 @@ gts_gtp.gtp.commands['kgs-chat'] = function(args, callback){
         return linkKgsAccount(match[2], match[1], callback);
     }
 
-    callback(null, 'Join the online sensation at http://www.TeamGo.us');
+    callback(null, 'Visit http://www.TeamGo.us to vote on moves for me!');
 };
 
 var reset = function(){
@@ -553,6 +570,40 @@ var touchLastVoteTime = function(){
     });
 };
 
+/*gts_gtp.gtp.commands['tg-got-challenge'] = function(args, callback){
+    players.now.opponentName = args.opponent;
+};*/
+
+gts_gtp.gtp.commands.boardsize = function(args, callback){
+    var normalHandler = function(){
+        if(args != 19){
+            callback('unacceptable size');
+        } else {
+            callback();
+        }
+    };
+
+    if(gts_gtp.isIdle()){
+        //Refuse games until ready
+        return callback('unacceptable size');
+    }
+
+    //If we don't want to play against the player, we can return an error on this call to abort the game
+    /*if(players.now.opponentName != null) {
+        kgs.getUserRank(args.opponent, function(err, rank){
+            isChallengerOk({ opponent: args.opponent, rank: rank }, function(err, ok){
+                if(ok){
+                    normalHandler();
+                } else {
+                    callback('unacceptable size');
+                }
+            });
+        });
+    } else {*/
+        normalHandler();
+    //}
+};
+
 setInterval(function(){
     if(players.now.inGame){
         players.now.lookingForGame = false;
@@ -570,7 +621,7 @@ setInterval(function(){
     if(!players.now.inGame && !players.now.lookingForGame){
         getReadyCount(function(err, count){
             if(count >= 2){
-                gts_gtp.start();
+                gts_gtp.start({ idle: false });
                 players.now.lookingForGame = true;
             } else {
                 gts_gtp.stop();
@@ -622,3 +673,5 @@ setInterval(function(){
     });
 
 }, 1000);
+
+gts_gtp.start({ idle: true });
