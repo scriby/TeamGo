@@ -10,7 +10,7 @@ var app = express.createServer();
 //todo: check on cookie security
 app.use(express.static(__dirname + '/web'));
 
-var server = app.listen(8000);
+var server = app.listen(80);
 
 var everyone = nowjs.initialize(server, { closureTimeout: 20 * 60 * 1000 });
 var players = nowjs.getGroup('players');
