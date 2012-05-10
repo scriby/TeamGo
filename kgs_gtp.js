@@ -6,8 +6,6 @@ var proc;
 var startOptions;
 
 exports.start = function(options){
-    console.log((new Error()).stack);
-
     if(proc != null){
         //already running
         proc.removeAllListeners('exit');
@@ -26,15 +24,15 @@ exports.start = function(options){
         startArgs.push('opponent=' + options.opponent);
     }
 
-    if(options.idle){
+    /*if(options.idle){
         startArgs.push('mode=wait');
         if(!options.opponent){
             startArgs.push('opponent=zzzzzzzz');
         }
-    } else {
+    } else {*/
         startArgs.push('mode=custom');
         startArgs.push('gameNotes=I relay moves voted on by players at www.TeamGo.us' );
-    }
+    //}
 
     proc = child_process.spawn(
         'java',
@@ -65,7 +63,7 @@ exports.start = function(options){
     proc.stderr.on('data', function(data){
         gtp.receiveError(data.toString());
 
-        console.error('stderr: ' + data);
+        //console.error('stderr: ' + data);
     });
 
     proc.on('exit', function(code){
@@ -86,7 +84,6 @@ exports.start = function(options){
 
 exports.stop = function(){
     if(proc){
-        console.log((new Error()).stack);
         //proc.removeAllListeners('exit');
         proc.kill('SIGINT');
 

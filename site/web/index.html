@@ -90,14 +90,14 @@
         <div class="span8">
             <div class="game" data-bind="visible: doneLoading, css: { 'game-in-progress': gameInProgress(), 'not-game-in-progress': !gameInProgress() }" style="display:none">
                 <div data-bind="visible: !gameInProgress()" class="well">
-                    <h3 data-bind="visible: !lookingForGame()">
+                    <!--h3 data-bind="visible: !lookingForGame()">
                         TeamGo is not currently playing a game.<br />
                         When two or more players are ready, TeamGo will look for a game on KGS.
                     </h3>
                     <div data-bind="visible: !lookingForGame()" style="text-align: center;margin-top:1em">
                         <button data-bind="click: markReady, disable: isReady" class="btn btn-primary btn-large" style="font-size:20px">I'm Ready</button>
-                    </div>
-                    <h3 data-bind="visible: lookingForGame()">
+                    </div-->
+                    <h3>
                         TeamGo is currently looking for a game.
                     </h3>
                 </div>
@@ -390,7 +390,7 @@
                 }
 
                 var top = 0;
-                for(var j = 1; j <= 19; j++){
+                for(var j = 19; j >= 1; j--){
                     var boardNumber = $('<div />')
                             .addClass('board-number')
                             .addClass('board-marker')

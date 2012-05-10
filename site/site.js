@@ -3,13 +3,14 @@ var nowjs = require("now");
 var async = require('async');
 var gts_gtp = require('../kgs_gtp.js');
 var kgs = require('../kgs.js');
+var bot = require('../bot.js');
 
 var app = express.createServer();
 
 //todo: check on cookie security
 app.use(express.static(__dirname + '/web'));
 
-var server = app.listen(80);
+var server = app.listen(8000);
 
 var everyone = nowjs.initialize(server, { closureTimeout: 20 * 60 * 1000 });
 var players = nowjs.getGroup('players');
@@ -46,6 +47,7 @@ everyone.now.login = function(sessionId, callback) {
         this.now.setUsername(session.username);
     }
 
+    session.lastVoteTime = new Date();
     players.addUser(this.user.clientId);
 
     callback();
@@ -187,11 +189,42 @@ var fromGtpColor = function(color){
     }
 };
 
+var toGtpColor = function(color){
+    color = color.toLowerCase();
+
+    if(color === 'white'){
+        return 'w';
+    } else {
+        return 'b';
+    }
+};
+
 players.secondsPerMove = 27;
 players.votes = Object.create(null);
 
 var getMostVoted = function(){
     var votes = {};
+
+    var nonBotVoteExists = false;
+    Object.keys(players.votes).forEach(function(key){
+        var vote = players.votes[key];
+
+        if(!vote.bot){
+            nonBotVoteExists = true;
+        }
+    });
+
+    //Remove bot votes if there are non-bot votes
+    if(nonBotVoteExists){
+        Object.keys(players.votes).forEach(function(key){
+            var vote = players.votes[key];
+
+            if(vote.bot){
+                delete players.votes[key];
+            }
+        });
+    }
+
     Object.keys(players.votes).forEach(function(key){
         var vote = players.votes[key];
         if(vote.special == null){
@@ -290,7 +323,9 @@ var finalizeMove = function(color, callback){
         var move = function(x, y, special){
             players._genmove = null;
             players._moves.push({color: color, x: x, y: y, special: special});
-            players.now.playMove(color, x, y, special);
+            if(players.now.playMove){
+                players.now.playMove(color, x, y, special);
+            }
 
             //Reset votes dictionary
             players.votes = Object.create(null);
@@ -303,8 +338,10 @@ var finalizeMove = function(color, callback){
             players.finalize = null;
 
             if(special == null){
+                gts_gtp.gtp.commands['tg-finalize-move'](toGtpColor(color), toVertex(x, y));
                 callback(null, toVertex(x, y));
             } else {
+                gts_gtp.gtp.commands['tg-finalize-move'](toGtpColor(color), special);
                 callback(null, special);
             }
         };
@@ -318,12 +355,16 @@ var finalizeMove = function(color, callback){
         }
 
         if(checkSpecialVote('pass') > 0.6){
-            players.now.receiveChat('Game info', null, 'TeamGo passed');
+            if(players.now.receiveChat){
+                players.now.receiveChat('Game info', null, 'TeamGo passed');
+            }
             return move(null, null, 'pass');
         }
 
         if(checkSpecialVote('resign') > 0.8){
-            players.now.receiveChat('Game info', null, 'TeamGo resigned');
+            if(players.now.receiveChat){
+                players.now.receiveChat('Game info', null, 'TeamGo resigned');
+            }
             players.now.inGame = false;
             reset();
             return move(null, null, 'resign');
@@ -343,6 +384,19 @@ var finalizeMove = function(color, callback){
 
         move(x, y);
     }
+};
+
+gts_gtp.gtp.commands['tg-finalize-move'] = function(){
+
+};
+
+gts_gtp.gtp.commands['tg-bot-vote'] = function(args){
+    var coord = fromVertex(args);
+
+    if(players.now.addVote){
+        players.now.addVote(players.now.myColor, coord.x, coord.y);
+    }
+    players.votes['tg-bot'] = {x: coord.x, y: coord.y, bot: true };
 };
 
 gts_gtp.gtp.commands.genmove = function(args, callback){
@@ -424,9 +478,13 @@ gts_gtp.gtp.commands['tg-final-score'] = function(args, callback){
     color = color.substring(0, 1).toUpperCase() + color.substring(1);
 
     if(args.resign){
-        players.now.receiveChat('Game info', null, color + ' won the game by resignation.');
+        if(players.now.receiveChat){
+            players.now.receiveChat('Game info', null, color + ' won the game by resignation.');
+        }
     } else {
-        players.now.receiveChat('Game info', null, color + ' won the game by ' + args.score + ' points.');
+        if(players.now.receiveChat){
+            players.now.receiveChat('Game info', null, color + ' won the game by ' + args.score + ' points.');
+        }
     }
 
     callback();
@@ -583,10 +641,10 @@ gts_gtp.gtp.commands.boardsize = function(args, callback){
         }
     };
 
-    if(gts_gtp.isIdle()){
+    /*if(gts_gtp.isIdle()){
         //Refuse games until ready
         return callback('unacceptable size');
-    }
+    }*/
 
     //If we don't want to play against the player, we can return an error on this call to abort the game
     /*if(players.now.opponentName != null) {
@@ -647,6 +705,7 @@ setInterval(function(){
         var currentTime = new Date();
         var elapsedSeconds = Math.floor((currentTime - players.genMoveStarted) / 1000);
 
+        var totalVotes = getNumberOfVotes();
         var numberConfirmed = getNumberOfConfirmedVotes();
 
         var overallTurnTime = players.secondsPerMove - elapsedSeconds;
@@ -659,9 +718,16 @@ setInterval(function(){
 
         players.now.turnTimeRemaining = Math.min(overallTurnTime, shortCircuit);
 
-        if(players.now.whoseTurn === players.now.myColor && players.now.turnTimeRemaining <= 0){
-            if(players.finalize){
-                players.finalize();
+        if(players.now.whoseTurn === players.now.myColor){
+            if(players.now.activePlayerCount <= 0 && totalVotes > 0){
+                //Just bot(s) playing, no need to wait
+                if(players.finalize){
+                    players.finalize();
+                }
+            } else if(players.now.turnTimeRemaining <= 0){
+                if(players.finalize){
+                    players.finalize();
+                }
             }
         }
     } else {
@@ -675,3 +741,5 @@ setInterval(function(){
 }, 1000);
 
 gts_gtp.start({ idle: true });
+bot.register(gts_gtp.gtp.commands);
+bot.start();
