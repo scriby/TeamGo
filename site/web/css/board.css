@@ -235,6 +235,8 @@
     font-size: 15px;
     font-weight:bold;
     text-shadow: white 0.1em 0.1em 0.2em;
+    -moz-user-select: none;
+    -webkit-user-select: none;
 }
 
 .not-game-in-progress .board-letter {

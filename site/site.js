@@ -4,13 +4,14 @@ var async = require('async');
 var gts_gtp = require('../kgs_gtp.js');
 var kgs = require('../kgs.js');
 var bot = require('../bot.js');
+var utility = require('../utility.js');
 
 var app = express.createServer();
 
 //todo: check on cookie security
 app.use(express.static(__dirname + '/web'));
 
-var server = app.listen(80);
+var server = app.listen(8000);
 
 var everyone = nowjs.initialize(server, { closureTimeout: 20 * 60 * 1000 });
 var players = nowjs.getGroup('players');
@@ -110,94 +111,7 @@ var getReadyCount = function(callback){
     });
 };
 
-var vertexMapping = {
-    a: 0,
-    b: 1,
-    c: 2,
-    d: 3,
-    e: 4,
-    f: 5,
-    g: 6,
-    h: 7,
-    j: 8,
-    k: 9,
-    l: 10,
-    m: 11,
-    n: 12,
-    o: 13,
-    p: 14,
-    q: 15,
-    r: 16,
-    s: 17,
-    t: 18,
 
-    0: 'a',
-    1: 'b',
-    2: 'c',
-    3: 'd',
-    4: 'e',
-    5: 'f',
-    6: 'g',
-    7: 'h',
-    8: 'j',
-    9: 'k',
-    10: 'l',
-    11: 'm',
-    12: 'n',
-    13: 'o',
-    14: 'p',
-    15: 'q',
-    16: 'r',
-    17: 's',
-    18: 't'
-};
-
-var rankMapping = (function(){
-    var ranks = {};
-    var i;
-
-    for(i = 1; i <= 30; i++){
-        ranks[i + 'k'] = i;
-    }
-
-    for(i = 1; i <= 9; i++){
-        ranks[i + 'd'] = i + 30;
-    }
-
-    for(i = 1; i <= 9; i++){
-        ranks[i + 'p'] = i + 39;
-    }
-})();
-
-var fromVertex = function(vertex){
-    var firstChar = vertex[0].toLowerCase();
-
-    return {x: vertexMapping[firstChar], y: 19 - parseInt(vertex.substring(1)) };
-};
-
-var toVertex = function(x, y){
-    return vertexMapping[x] + (19 - parseInt(y));
-};
-
-var fromGtpColor = function(color){
-    color = color.toLowerCase();
-
-    if(color === 'w' || color === 'white'){
-        return 'white';
-    } else {
-        return 'black';
-    }
-};
-
-var toGtpColor = function(color){
-    color = color.toLowerCase();
-
-    if(color === 'white'){
-        return 'w';
-    } else {
-        return 'b';
-    }
-};
 
 players.secondsPerMove = 27;
 players.votes = Object.create(null);
@@ -338,10 +252,10 @@ var finalizeMove = function(color, callback){
             players.finalize = null;
 
             if(special == null){
-                gts_gtp.gtp.commands['tg-finalize-move'](toGtpColor(color), toVertex(x, y));
-                callback(null, toVertex(x, y));
+                gts_gtp.gtp.commands['tg-finalize-move'](players._moves);
+                callback(null, utility.toVertex(x, y));
             } else {
-                gts_gtp.gtp.commands['tg-finalize-move'](toGtpColor(color), special);
+                gts_gtp.gtp.commands['tg-finalize-move'](players._moves);
                 callback(null, special);
             }
         };
@@ -391,7 +305,7 @@ gts_gtp.gtp.commands['tg-finalize-move'] = function(){
 };
 
 gts_gtp.gtp.commands['tg-bot-vote'] = function(args){
-    var coord = fromVertex(args);
+    var coord = utility.fromVertex(args);
 
     if(players.now.addVote){
         players.now.addVote(players.now.myColor, coord.x, coord.y, null, true);
@@ -402,7 +316,7 @@ gts_gtp.gtp.commands['tg-bot-vote'] = function(args){
 gts_gtp.gtp.commands.genmove = function(args, callback){
     players.now.inGame = true;
 
-    var color = fromGtpColor(args);
+    var color = utility.fromGtpColor(args);
 
     players.now.whoseTurn = color;
     players._genmove = arguments;
@@ -456,13 +370,13 @@ gts_gtp.gtp.commands.play = function(args, callback){
 
     var match = playRegex.exec(args);
 
-    var color = fromGtpColor(match[1]);
+    var color = utility.fromGtpColor(match[1]);
     var coord = {};
     var special;
     if(match[2] === 'pass'){
         special = 'pass';
     } else {
-        coord = fromVertex(match[2]);
+        coord = utility.fromVertex(match[2]);
     }
 
     if(players.now.playMove){
@@ -474,7 +388,7 @@ gts_gtp.gtp.commands.play = function(args, callback){
 };
 
 gts_gtp.gtp.commands['tg-final-score'] = function(args, callback){
-    var color = fromGtpColor(args.winner);
+    var color = utility.fromGtpColor(args.winner);
     color = color.substring(0, 1).toUpperCase() + color.substring(1);
 
     if(args.resign){
@@ -539,7 +453,7 @@ var timeLeftRegex = /([bw]) (\d+)/i;
 gts_gtp.gtp.commands['time_left'] = function(args, callback){
     var match = timeLeftRegex.exec(args);
 
-    var color = fromGtpColor(match[1]);
+    var color = utility.fromGtpColor(match[1]);
     var seconds = parseInt(match[2]);
 
     if(players.now.timeLeft == null){

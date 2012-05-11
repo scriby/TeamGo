@@ -1,5 +1,6 @@
 var path = require('path');
 var child_process = require('child_process');
+var utility = require('./utility.js');
 
 var proc;
 var waitingOnResponse = false;
@@ -121,11 +122,16 @@ exports.register = function(commands){
         existing.clear_board(args, callback);
     };
 
-    commands['tg-finalize-move'] = function(color, move){
-        exports.send('undo');
-        exports.send('play ' + color + ' ' + move);
+    commands['tg-finalize-move'] = function(moves){
+        exports.send('clear_board');
 
-        existing['tg-finalize-move'](color, move);
+        moves.forEach(function(move){
+            if(!move.special){
+                exports.send('play ' + utility.toGtpColor(move.color) + ' ' + utility.toVertex(move.x, move.y));
+            }
+        });
+
+        existing['tg-finalize-move'](moves);
     };
 };
 
