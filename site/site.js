@@ -633,8 +633,13 @@ setInterval(function(){
         players.now.turnTimeRemaining = Math.min(overallTurnTime, shortCircuit);
 
         if(players.now.whoseTurn === players.now.myColor){
-            if(players.now.activePlayerCount <= 0 && totalVotes > 0){
-                //Just bot(s) playing, no need to wait
+            if(players.now.activePlayerCount <= 0 && totalVotes > 0 && players.now.turnTimeRemaining < 15){
+                //Give players a chance to become active again (don't let the bot play too fast)
+                if(players.finalize){
+                    players.finalize();
+                }
+            } else if(players.now.playerCount === 0 && totalVotes > 0){
+                //Just bot(s) logged in, no need to wait
                 if(players.finalize){
                     players.finalize();
                 }
