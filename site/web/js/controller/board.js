@@ -145,11 +145,15 @@ var tg = {};
     Board.prototype.addVote = function(color, x, y, special, isBot){
         if(special == null){
             var item = this.rows[y][x];
-            item.preview(true);
-            item.status(color);
-            item.votes(item.votes() + 1);
+            if(item.status === 'empty'){
+                item.preview(true);
+                item.status(color);
+                item.votes(item.votes() + 1);
+            }
 
-            item.isBot(item.isBot() || isBot)
+            if(item.preview()){
+                item.isBot(item.isBot() || isBot);
+            }
         } else {
             this.votes[special](this.votes[special]() + 1);
         }
