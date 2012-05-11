@@ -145,7 +145,7 @@ var tg = {};
     Board.prototype.addVote = function(color, x, y, special, isBot){
         if(special == null){
             var item = this.rows[y][x];
-            if(item.status() === 'empty'){
+            if(item.status() === 'empty' || !isBot){
                 item.preview(true);
                 item.status(color);
                 item.votes(item.votes() + 1);
