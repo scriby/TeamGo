@@ -394,7 +394,7 @@ gts_gtp.gtp.commands['tg-bot-vote'] = function(args){
     var coord = fromVertex(args);
 
     if(players.now.addVote){
-        players.now.addVote(players.now.myColor, coord.x, coord.y);
+        players.now.addVote(players.now.myColor, coord.x, coord.y, null, true);
     }
     players.votes['tg-bot'] = {x: coord.x, y: coord.y, bot: true };
 };

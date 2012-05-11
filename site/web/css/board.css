@@ -229,6 +229,14 @@
     width: 2em;
 }
 
+.board .bot-text {
+    position:absolute;
+    left: 8px;
+    font-size: 15px;
+    font-weight:bold;
+    text-shadow: white 0.1em 0.1em 0.2em;
+}
+
 .not-game-in-progress .board-letter {
     display: none;
 }

@@ -97,6 +97,7 @@ var tg = {};
                     confirmed: ko.observable(false),
                     preview: ko.observable(false),
                     isLastMove: ko.observable(false),
+                    isBot: ko.observable(false),
                     click: function(intersection){
                         self.events.emit('intersectionClick', intersection);
                     }
@@ -141,12 +142,14 @@ var tg = {};
         this.players.black.captures(0);
     };
 
-    Board.prototype.addVote = function(color, x, y, special){
+    Board.prototype.addVote = function(color, x, y, special, isBot){
         if(special == null){
             var item = this.rows[y][x];
             item.preview(true);
             item.status(color);
             item.votes(item.votes() + 1);
+
+            item.isBot(item.isBot() || isBot)
         } else {
             this.votes[special](this.votes[special]() + 1);
         }
@@ -186,6 +189,7 @@ var tg = {};
                     row[j].preview(false);
                     row[j].status('empty');
                     row[j].votes(0);
+                    row[j].isBot(false);
                 }
             }
         }

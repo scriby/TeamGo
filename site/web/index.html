@@ -127,8 +127,10 @@
                                         }
                                         "
                                 >
+
                                     <div data-bind="css: { 'last-move': isLastMove() }, text: votes() > 0 ? votes() : ''"></div>
                                 </div>
+                                <div class="bot-text" data-bind="text: isBot() ? 'bot' : ''"></div>
                             </div>
                         </div>
                     </div></div>
@@ -252,8 +254,8 @@
                     console.log(username);
                 };
 
-                now.addVote = function(color, x, y, special){
-                    tg.board.addVote(color, x, y, special);
+                now.addVote = function(color, x, y, special, isBot){
+                    tg.board.addVote(color, x, y, special, isBot);
                 };
 
                 now.confirmVote = function(x, y){
@@ -494,6 +496,14 @@
         <div style="margin-left:1em">
             Linking your account will make your KGS name and rank appear in chat when you send a message. It doesn't
             affect the voting directly (for now), but you may be able to influence others through chat.
+        </div>
+
+        <h3>
+            Who is the extra player?
+        </h3>
+        <div style="margin-left:1em">
+            A gnuGo bot also suggests moves and plays when no human players are available. If a human is playing, bot votes are not
+            taken into consideration when selecting moves to play.
         </div>
 
         <h3>
